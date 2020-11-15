@@ -1,10 +1,12 @@
 ﻿#include <REG52.H>
-/*
+/*第一种写法，调用delay(1000)相当于延时10ms
 void delay(unsigned int i)
 {
     while (i--);
 }
 */
+
+/*第二中写法，调用delay(1000)相当于延时1000ms，即1秒*/
 void delay(unsigned int time_ms)
 {
     unsigned char i, j;

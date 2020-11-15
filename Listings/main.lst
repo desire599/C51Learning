@@ -1,0 +1,75 @@
+C51 COMPILER V9.60.0.0   MAIN                                                              11/12/2020 15:24:04 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\Program Files (x86)\Keil_v5\C51\BIN\C51.EXE src\main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTE
+                    -ND PRINT(.\Listings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          //程序：ex5_1.c
+   2          //功能：00～99的简易秒表设计，两个静态数码管，定时器采用中断方式
+   3          #include "reg51.h"  //包含头文件reg51.h，定义了51单片机的专用寄存器
+   4          //全局变量定义
+   5          unsigned char count=0;      //对50ms定时时间进行计数
+   6          unsigned char miao=0;       //秒计数器
+   7          
+   8          //函数名：timer_1()
+   9          //函数功能：定时器T1中断函数，假设T1在工作方式1下每50ms产生中断，执行该中断函数
+  10          //形式参数：无 
+  11          //返回值：无
+  12          void timer_1() interrupt 3 //（5）编写中断服务程序，T1的中断类型号为3
+  13          {  
+  14   1        count++;                    //50ms计数器加1
+  15   1        TH1=(65536-50000)/256;     //重新设置T1计数初值高8位
+  16   1        TL1=(65536-50000)%256;     //重新设置T1计数初值低8位
+  17   1        if(count==20)              //1s时间到
+  18   1        {
+  19   2         count=0;                 //50ms计数器清0
+  20   2         miao++;                  //秒计数器加1
+  21   2         if(miao==100)miao=0;  //miao计数到100，则从0开始计数
+  22   2        }
+  23   1      }
+  24          
+  25          //函数名：disp(unsigned char i)
+  26          //函数功能：将i的值显示在两个静态连接的数码管上
+  27          //形式参数：i，取值范围0～99 
+  28          //返回值：无
+  29          void disp(unsigned char i)
+  30          {
+  31   1        unsigned char led[]={0xc0,0xf9,0xa4,0xb0,0x99,0x92,0x82,0xf8,0x80,0x90};
+  32   1      //定义0～9显示码，共阳极数码管
+  33   1        P1=led[i/10];   //显示i高位，商放在左边第一个LED
+  34   1        P2=led[i%10];   //显示i低位，取余数放在第二个LED
+  35   1       }
+  36          
+  37          void main()         //主函数
+  38          {
+  39   1        TMOD=0x10;              //（1）设置T1为工作方式1
+  40   1        TH1=(65536-50000)/256;   //（2）设置T1计数初值高8位，定时时间50ms
+  41   1        TL1=(65536-50000)%256;   //（2）设置T1计数初值低8位
+  42   1        ET1=1;                   //（3）开放T1中断允许
+  43   1        EA=1;                    //（3）开放总中断允许
+  44   1        TR1=1;                   //（4）启动T1开始计数  
+  45   1        while(1)
+  46   1        {
+  47   2         disp(miao);               //显示秒计数器值
+  48   2        }
+  49   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    101    ----
+   CONSTANT SIZE    =     10    ----
+C51 COMPILER V9.60.0.0   MAIN                                                              11/12/2020 15:24:04 PAGE 2   
+
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      2      11
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
