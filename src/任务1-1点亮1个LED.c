@@ -5,9 +5,9 @@ void main()
 }
 
 /*第2种写法
-sbit LED=P1^0;
+sbit LED=P1^0; //特殊功能位定义，用LED这个英文名代替P1.0引脚
 void main()
 {
-    led=0; // 表示P1.0=0，由于硬件接线该LED为低电平导通，所以点亮LED
+    LED=0; // 表示P1.0=0，由于硬件接线该LED为低电平导通，所以点亮LED
 }
 */
