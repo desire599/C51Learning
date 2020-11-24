@@ -1,4 +1,4 @@
-C51 COMPILER V9.60.0.0   MAIN                                                              11/24/2020 16:33:19 PAGE 1   
+C51 COMPILER V9.60.0.0   MAIN                                                              11/24/2020 16:37:51 PAGE 1   
 
 
 C51 COMPILER V9.60.0.0, COMPILATION OF MODULE MAIN
@@ -11,229 +11,228 @@ line level    source
    1          //任务8-1可调光台灯
    2          //功能：利用PCF8591芯片进行DA转换，输出模拟电压控制台灯的亮度
    3          #include <reg51.h>
-   4          #include <INTRINS.H>
-   5          sbit SDA = P2 ^ 7; //P2.7定义I2C数据线引脚
-   6          sbit SCL = P2 ^ 6; //P2.6定义I2C时钟线引脚
-   7          sbit S1 = P1 ^ 1;  //P1.1控制按键，亮度增加
-   8          sbit S2 = P1 ^ 0;  //P1.0控制按键，亮度减小
-   9          #define delayNOP() \
-  10              ;              \
-  11              {              \
-  12                  _nop_();   \
-  13                  _nop_();   \
-  14                  _nop_();   \
-  15                  _nop_();   \
-  16              };                 //定义延时函数，其执行语句为4个空运行指令，从而实现延时
-  17          bit bdata SystemError; //从机错误标志位
-  18          //——————————PCF8591专用变量定义——————————————
-  19          #define PCF8591_WRITE 0x90 //器件写地址，具体参考芯片使用手册
-  20          #define PCF8591_READ 0x91  //器件读地址
-  21          
-  22          //函数名：iic_start
-  23          //功能：启动I2C总线，即发送I2C起始条件，形参：无，返回值：无
-  24          void iic_start()
-  25          {
-  26   1          EA = 0;  //关中断
-  27   1          SDA = 1; //时钟保持高电平，数据线从高到低一次跳变，I2C通信开始
-  28   1          SCL = 1;
-  29   1          delayNOP(); //起始条件建立时间需要大于4.7μs，所以调用延时函数
-  30   1          SDA = 0;
-  31   1          delayNOP(); //起始条件锁定时间需要大于4.7μs，所以调用延时函数
-  32   1          SCL = 0;    //钳住I2C总线，准备发送或接收数据
-  33   1      }
-  34          
-  35          //函数名：iic_stop
-  36          //功能：停止I2C总线数据传送，形参：无，返回值：无
-  37          void iic_stop()
-  38          {
-  39   1          SDA = 0; //时钟保持高，数据线从低到高一次跳变，I2C通信停止
-  40   1          SCL = 1;
-  41   1          delayNOP(); //起始条件建立时间需要大于4.7μs，所以调用延时函数
-  42   1          SDA = 1;
-  43   1          delayNOP(); //起始条件锁定时间需要大于4.7μs，所以调用延时函数
-  44   1          SCL = 0;    //钳住I2C总线，准备发送或接收数据
-  45   1      }
-  46          
-  47          //函数名：slave_ACK
-  48          //函数功能：从机发送应答位，形参：无，返回值：无
-  49          void slave_ACK()
-  50          {
-  51   1          SDA = 0;
-  52   1          SCL = 1;
-  53   1          delayNOP();
-  54   1          SDA = 1;
-C51 COMPILER V9.60.0.0   MAIN                                                              11/24/2020 16:33:19 PAGE 2   
+   4          #include <INTRINS.H> //包含_nop_()函数
+   5          sbit SDA = P2 ^ 7;     //P2.7定义I2C数据线引脚
+   6          sbit SCL = P2 ^ 6;     //P2.6定义I2C时钟线引脚
+   7          sbit S1 = P1 ^ 1;      //P1.1控制按键，亮度增加
+   8          sbit S2 = P1 ^ 0;      //P1.0控制按键，亮度减小
+   9          bit bdata SystemError; //从机错误标志位
+  10          //——————————PCF8591专用变量定义——————————————
+  11          #define PCF8591_WRITE 0x90 //器件写地址，具体参考芯片使用手册
+  12          #define PCF8591_READ 0x91  //器件读地址
+  13          
+  14          void delayNOP()//定义延时函数，其执行语句为4个空运行指令，从而实现延时4个机器周期，在12MHz晶振下约4μs
+  15          {
+  16   1        _nop_();//空运行一次所需时间为1个机器周期
+  17   1        _nop_();
+  18   1        _nop_();
+  19   1        _nop_();
+  20   1      } 
+  21          //函数名：iic_start
+  22          //功能：启动I2C总线，即发送I2C起始条件，形参：无，返回值：无
+  23          void iic_start()
+  24          {
+  25   1        EA = 0;  //关中断
+  26   1        SDA = 1; //时钟保持高电平，数据线从高到低一次跳变，I2C通信开始
+  27   1        SCL = 1;
+  28   1        delayNOP(); //起始条件建立时间需要大于4.7μs，所以调用延时函数
+  29   1        SDA = 0;
+  30   1        delayNOP(); //起始条件锁定时间需要大于4.7μs，所以调用延时函数
+  31   1        SCL = 0;    //钳住I2C总线，准备发送或接收数据
+  32   1      }
+  33          
+  34          //函数名：iic_stop
+  35          //功能：停止I2C总线数据传送，形参：无，返回值：无
+  36          void iic_stop()
+  37          {
+  38   1        SDA = 0; //时钟保持高，数据线从低到高一次跳变，I2C通信停止
+  39   1        SCL = 1;
+  40   1        delayNOP(); //起始条件建立时间需要大于4.7μs，所以调用延时函数
+  41   1        SDA = 1;
+  42   1        delayNOP(); //起始条件锁定时间需要大于4.7μs，所以调用延时函数
+  43   1        SCL = 0;    //钳住I2C总线，准备发送或接收数据
+  44   1      }
+  45          
+  46          //函数名：slave_ACK
+  47          //函数功能：从机发送应答位，形参：无，返回值：无
+  48          void slave_ACK()
+  49          {
+  50   1        SDA = 0;
+  51   1        SCL = 1;
+  52   1        delayNOP();
+  53   1        SDA = 1;
+  54   1        SCL = 0;
+C51 COMPILER V9.60.0.0   MAIN                                                              11/24/2020 16:37:51 PAGE 2   
 
-  55   1          SCL = 0;
-  56   1      }
-  57          
-  58          //函数名：slave_NOACK
-  59          //函数功能：从机发送非应答位，迫使数据传输过程结束。形参：无。返回值：无
-  60          void slave_NOACK()
-  61          {
-  62   1          SDA = 1;
-  63   1          SCL = 1;
-  64   1          delayNOP();
-  65   1          SDA = 0;
-  66   1          SCL = 0;
-  67   1      }
-  68          
-  69          //函数名：check_ACK
-  70          //函数功能：主机应答位检查，迫使数据传输过程结束。形参：无。返回值：无。
-  71          void check_ACK()
-  72          {
-  73   1          SDA = 1; //将I/O设置成输入，必须先向端口写1
-  74   1          SCL = 1;
-  75   1          F0 = 0;
-  76   1          if(SDA==1) //若SDA=1表明非应答，置位非应答标志F0
-  77   1          {
-  78   2              F0 = 1;
-  79   2          }
-  80   1          SCL = 0;
-  81   1      }
-  82          
-  83          //函数名：IICSendByte
-  84          //函数功能：发送一个字节（一个字节由8位二进制组成）。形参：要发送的数据。返回值：无。
-  85          void IICSendByte(unsigned char sData)
-  86          {
-  87   1          unsigned char idata n = 8; //向SDA上发送一个字节数据，共8位
-  88   1          while (n--)
-  89   1          {
-  90   2              if ((sData & 0x80) == 0x80) //判断要发送的数据最高位是否为1
-  91   2              {
-  92   3                  SDA = 1; //如果满足，则发送位置为1
-  93   3                  SCL = 1;
-  94   3                  delayNOP();
-  95   3                  SDA = 0;
-  96   3                  SCL = 0;
-  97   3              }
-  98   2              else
-  99   2              {
- 100   3                  SDA = 0; //如果不满足，则发送位置为0
- 101   3                  SCL = 1;
- 102   3                  delayNOP();
- 103   3                  SCL = 0;
- 104   3              }
- 105   2              sData = sData << 1; //把要传输的数据的位左移一位进行下一个循环判断
- 106   2          }
- 107   1      }
- 108          
- 109          //函数：IICReceiveByte
- 110          //函数功能：接收一个字节数据。形参：无。返回值：返回接收的数据
- 111          unsigned char IICReceiveByte()
- 112          {
- 113   1          unsigned char idata n = 8; //从SDA线上读取一个字节数据，共8位
- 114   1          unsigned char rData;       //定义存放数据的变量rData
- 115   1          while (n--)
- 116   1          {
-C51 COMPILER V9.60.0.0   MAIN                                                              11/24/2020 16:33:19 PAGE 3   
+  55   1      }
+  56          
+  57          //函数名：slave_NOACK
+  58          //函数功能：从机发送非应答位，迫使数据传输过程结束。形参：无。返回值：无
+  59          void slave_NOACK()
+  60          {
+  61   1        SDA = 1;
+  62   1        SCL = 1;
+  63   1        delayNOP();
+  64   1        SDA = 0;
+  65   1        SCL = 0;
+  66   1      }
+  67          
+  68          //函数名：check_ACK
+  69          //函数功能：主机应答位检查，迫使数据传输过程结束。形参：无。返回值：无。
+  70          void check_ACK()
+  71          {
+  72   1        SDA = 1; //将I/O设置成输入，必须先向端口写1
+  73   1        SCL = 1;
+  74   1        F0 = 0;
+  75   1        if (SDA == 1) //若SDA=1表明非应答，置位非应答标志F0
+  76   1        {
+  77   2          F0 = 1;
+  78   2        }
+  79   1        SCL = 0;
+  80   1      }
+  81          
+  82          //函数名：IICSendByte
+  83          //函数功能：发送一个字节（一个字节由8位二进制组成）。形参：要发送的数据。返回值：无。
+  84          void IICSendByte(unsigned char sData)
+  85          {
+  86   1        unsigned char idata n = 8; //向SDA上发送一个字节数据，共8位
+  87   1        while (n--)
+  88   1        {
+  89   2          if ((sData & 0x80) == 0x80) //判断要发送的数据最高位是否为1
+  90   2          {
+  91   3            SDA = 1; //如果满足，则发送位置为1
+  92   3            SCL = 1;
+  93   3            delayNOP();
+  94   3            SDA = 0;
+  95   3            SCL = 0;
+  96   3          }
+  97   2          else
+  98   2          {
+  99   3            SDA = 0; //如果不满足，则发送位置为0
+ 100   3            SCL = 1;
+ 101   3            delayNOP();
+ 102   3            SCL = 0;
+ 103   3          }
+ 104   2          sData = sData << 1; //把要传输的数据的位左移一位进行下一个循环判断
+ 105   2        }
+ 106   1      }
+ 107          
+ 108          //函数：IICReceiveByte
+ 109          //函数功能：接收一个字节数据。形参：无。返回值：返回接收的数据
+ 110          unsigned char IICReceiveByte()
+ 111          {
+ 112   1        unsigned char idata n = 8; //从SDA线上读取一个字节数据，共8位
+ 113   1        unsigned char rData;       //定义存放数据的变量rData
+ 114   1        while (n--)
+ 115   1        {
+ 116   2          SDA = 1;
+C51 COMPILER V9.60.0.0   MAIN                                                              11/24/2020 16:37:51 PAGE 3   
 
- 117   2              SDA = 1;
- 118   2              SCL = 1;
- 119   2              rData = rData << 1; //把接收数据的左移1位
- 120   2              if (SDA == 1)
- 121   2              {
- 122   3                  rData = rData | 0x01; //若接收到的位为1，则数据的最后一位置为1
- 123   3              }
- 124   2              else
- 125   2              {
- 126   3                  rData = rData & 0xfe; //否则该数据的最后一位清零
- 127   3              }
- 128   2              SCL = 0;
- 129   2          }
- 130   1          return rData;
- 131   1      }
- 132          
- 133          //函数名：DAC_PCF8591
- 134          //函数功能：发送n位数据
- 135          //形参：control为控制字存放变量，wData为要转换的数字量。返回值：无
- 136          void DAC_PCF8591(unsigned char controlByte, unsigned char wData)
- 137          {
- 138   1          iic_start();                //启动I2C通信
- 139   1          IICSendByte(PCF8591_WRITE); //发送地址位
- 140   1          check_ACK();                //检查应答位
- 141   1          if (F0 == 1)                //如果非应答标志为1，表示器件错误或已坏，置错误标志位SystemError为1
- 142   1          {
- 143   2              SystemError = 1;
- 144   2              return; //此句是否可不写
- 145   2          }
- 146   1          IICSendByte(controlByte & 0x77); //0x77=0111 0111，屏蔽第4和第8位
- 147   1          check_ACK();
- 148   1          if (F0 == 1) //如果非应答标志为1，表示器件错误或已坏，置错误标志位SystemError为1
- 149   1          {
- 150   2              SystemError = 1;
- 151   2              return; //此句是否可不写
- 152   2          }
- 153   1          IICSendByte(wData);
- 154   1          check_ACK();
- 155   1          if (F0 == 1) //如果非应答标志为1，表示器件错误或已坏，置错误标志位SystemError为1
- 156   1          {
- 157   2              SystemError = 1;
- 158   2              return; //此句是否可不写
- 159   2          }
- 160   1          iic_stop();
- 161   1          delayNOP();
- 162   1          delayNOP();
- 163   1          delayNOP();
- 164   1          delayNOP();
- 165   1      }
- 166          
- 167          //函数名：delay_ms
- 168          //功能：采用定时器T1延时t毫秒，采用工作方式1，定时器初始值为64536，每次计时1ms（即1000次）
- 169          //形参：延时毫秒数（小于255ms）。返回值：无
- 170          void delay_ms(unsigned char t)
- 171          {
- 172   1          unsigned char i; //循环计数变量
- 173   1          TMOD = 0x10;     //设置T1定时器，工作方式为1，16位计数器
- 174   1          for (i = 0; i < t; i++)
- 175   1          {
- 176   2              TH1 = (65536 - 1000) / 256; //设置定时器（计数器）初始值
- 177   2              TL1 = (65536 - 1000) % 256;
- 178   2              TR1 = 1; //启动定时器T1
-C51 COMPILER V9.60.0.0   MAIN                                                              11/24/2020 16:33:19 PAGE 4   
+ 117   2          SCL = 1;
+ 118   2          rData = rData << 1; //把接收数据的左移1位
+ 119   2          if (SDA == 1)
+ 120   2          {
+ 121   3            rData = rData | 0x01; //若接收到的位为1，则数据的最后一位置为1
+ 122   3          }
+ 123   2          else
+ 124   2          {
+ 125   3            rData = rData & 0xfe; //否则该数据的最后一位清零
+ 126   3          }
+ 127   2          SCL = 0;
+ 128   2        }
+ 129   1        return rData;
+ 130   1      }
+ 131          
+ 132          //函数名：DAC_PCF8591
+ 133          //函数功能：发送n位数据
+ 134          //形参：control为控制字存放变量，wData为要转换的数字量。返回值：无
+ 135          void DAC_PCF8591(unsigned char controlByte, unsigned char wData)
+ 136          {
+ 137   1        iic_start();                //启动I2C通信
+ 138   1        IICSendByte(PCF8591_WRITE); //发送地址位
+ 139   1        check_ACK();                //检查应答位
+ 140   1        if (F0 == 1)                //如果非应答标志为1，表示器件错误或已坏，置错误标志位SystemError为1
+ 141   1        {
+ 142   2          SystemError = 1;
+ 143   2          return; //此句是否可不写
+ 144   2        }
+ 145   1        IICSendByte(controlByte & 0x77); //0x77=0111 0111，屏蔽第4和第8位
+ 146   1        check_ACK();
+ 147   1        if (F0 == 1) //如果非应答标志为1，表示器件错误或已坏，置错误标志位SystemError为1
+ 148   1        {
+ 149   2          SystemError = 1;
+ 150   2          return; //此句是否可不写
+ 151   2        }
+ 152   1        IICSendByte(wData);
+ 153   1        check_ACK();
+ 154   1        if (F0 == 1) //如果非应答标志为1，表示器件错误或已坏，置错误标志位SystemError为1
+ 155   1        {
+ 156   2          SystemError = 1;
+ 157   2          return; //此句是否可不写
+ 158   2        }
+ 159   1        iic_stop();
+ 160   1        delayNOP();
+ 161   1        delayNOP();
+ 162   1        delayNOP();
+ 163   1        delayNOP();
+ 164   1      }
+ 165          
+ 166          //函数名：delay_ms
+ 167          //功能：采用定时器T1延时t毫秒，采用工作方式1，定时器初始值为64536，每次计时1ms（即1000次）
+ 168          //形参：延时毫秒数（小于255ms）。返回值：无
+ 169          void delay_ms(unsigned char t)
+ 170          {
+ 171   1        unsigned char i; //循环计数变量
+ 172   1        TMOD = 0x10;     //设置T1定时器，工作方式为1，16位计数器
+ 173   1        for (i = 0; i < t; i++)
+ 174   1        {
+ 175   2          TH1 = (65536 - 1000) / 256; //设置定时器（计数器）初始值
+ 176   2          TL1 = (65536 - 1000) % 256;
+ 177   2          TR1 = 1; //启动定时器T1
+ 178   2          while (!TF1)
+C51 COMPILER V9.60.0.0   MAIN                                                              11/24/2020 16:37:51 PAGE 4   
 
- 179   2              while (!TF1)
- 180   2                  ;    //查询计数是否溢出，否则空运行等待
- 181   2              TF1 = 0; //1ms定时到了，对溢出标志位清零
- 182   2          }
- 183   1      }
- 184          
- 185          void main()
- 186          {
- 187   1          unsigned char voltage; //输出电压值的变量，数字量0对应0.0v，255对应+5.0v
- 188   1          voltage = 125;         //初始电压值约为2.5V，这样LED灯有初始亮度
- 189   1          while (1)
- 190   1          {
- 191   2              DAC_PCF8591(0x40, voltage); //对控制字写0100 0000表示允许模拟量输出，并写入数字量voltage
- 192   2              if (S1 == 0)                //按键S1按下，台灯亮度增加
- 193   2              {
- 194   3                  delay_ms(10); //按键延时消抖
- 195   3                  if (S1 == 0)
- 196   3                  {
- 197   4                      if (voltage == 255)
- 198   4                          voltage = 125; //当电压变到最大时，又恢复中间值
- 199   4                      else
- 200   4                          voltage = voltage + 5; //每次增加5
- 201   4                  }
- 202   3              }
- 203   2              if (S2 == 0) //按键S2按下，台灯亮度减小
- 204   2              {
- 205   3                  delay_ms(10); //按键延时消抖
- 206   3                  if (S2 == 0)
- 207   3                  {
- 208   4                      if (voltage == 0)
- 209   4                          voltage = 125; //当电压变到最大时，又恢复中间值
- 210   4                      else
- 211   4                          voltage = voltage - 5; //每次减小5
- 212   4                  }
- 213   3              }
- 214   2              delay_ms(1);//每次延时1ms
- 215   2          }
- 216   1      }
+ 179   2            ;      //查询计数是否溢出，否则空运行等待
+ 180   2          TF1 = 0; //1ms定时到了，对溢出标志位清零
+ 181   2        }
+ 182   1      }
+ 183          
+ 184          void main()
+ 185          {
+ 186   1        unsigned char voltage; //输出电压值的变量，数字量0对应0.0v，255对应+5.0v
+ 187   1        voltage = 125;         //初始电压值约为2.5V，这样LED灯有初始亮度
+ 188   1        while (1)
+ 189   1        {
+ 190   2          DAC_PCF8591(0x40, voltage); //对控制字写0100 0000表示允许模拟量输出，并写入数字量voltage
+ 191   2          if (S1 == 0)                //按键S1按下，台灯亮度增加
+ 192   2          {
+ 193   3            delay_ms(10); //按键延时消抖
+ 194   3            if (S1 == 0)
+ 195   3            {
+ 196   4              if (voltage == 255)
+ 197   4                voltage = 125; //当电压变到最大时，又恢复中间值
+ 198   4              else
+ 199   4                voltage = voltage + 5; //每次增加5
+ 200   4            }
+ 201   3          }
+ 202   2          if (S2 == 0) //按键S2按下，台灯亮度减小
+ 203   2          {
+ 204   3            delay_ms(10); //按键延时消抖
+ 205   3            if (S2 == 0)
+ 206   3            {
+ 207   4              if (voltage == 0)
+ 208   4                voltage = 125; //当电压变到最大时，又恢复中间值
+ 209   4              else
+ 210   4                voltage = voltage - 5; //每次减小5
+ 211   4            }
+ 212   3          }
+ 213   2          delay_ms(1); //每次延时1ms
+ 214   2        }
+ 215   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =    317    ----
+   CODE SIZE        =    302    ----
    CONSTANT SIZE    =   ----    ----
    XDATA SIZE       =   ----    ----
    PDATA SIZE       =   ----    ----
