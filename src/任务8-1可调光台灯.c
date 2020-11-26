@@ -1,7 +1,7 @@
 ﻿//任务8-1可调光台灯
 //功能：利用PCF8591芯片进行DA转换，输出模拟电压控制台灯的亮度
 #include <reg51.h>
-#include <INTRINS.H> //包含_nop_()函数
+#include <INTRINS.H>   //包含_nop_()函数
 sbit SDA = P2 ^ 7;     //P2.7定义I2C数据线引脚
 sbit SCL = P2 ^ 6;     //P2.6定义I2C时钟线引脚
 sbit S1 = P1 ^ 1;      //P1.1控制按键，亮度增加
@@ -11,13 +11,13 @@ bit bdata SystemError; //从机错误标志位
 #define PCF8591_WRITE 0x90 //器件写地址，具体参考芯片使用手册
 #define PCF8591_READ 0x91  //器件读地址
 
-void delayNOP()//定义延时函数，其执行语句为4个空运行指令，从而实现延时4个机器周期，在12MHz晶振下约4μs
+void delayNOP() //定义延时函数，其执行语句为4个空运行指令，从而实现延时4个机器周期，在12MHz晶振下约4μs
 {
-  _nop_();//空运行一次所需时间为1个机器周期
+  _nop_(); //空运行一次所需时间为1个机器周期
   _nop_();
   _nop_();
   _nop_();
-} 
+}
 //函数名：iic_start
 //功能：启动I2C总线，即发送I2C起始条件，形参：无，返回值：无
 void iic_start()
@@ -71,8 +71,8 @@ void check_ACK()
 {
   SDA = 1; //将I/O设置成输入，必须先向端口写1
   SCL = 1;
-  F0 = 0;
-  if (SDA == 1) //若SDA=1表明非应答，置位非应答标志F0
+  F0 = 0;       //F0为用户自定义的标志位，功能：判断是否有应答，初始为0
+  if (SDA == 1) //如果SDA=1表示没有应答，则置位没有应答标志F0
   {
     F0 = 1;
   }
@@ -83,12 +83,12 @@ void check_ACK()
 //函数功能：发送一个字节（一个字节由8位二进制组成）。形参：要发送的数据。返回值：无。
 void IICSendByte(unsigned char sData)
 {
-  unsigned char idata n = 8; //向SDA上发送一个字节数据，共8位
-  while (n--)
+  unsigned char idata i = 8; //由于要向SDA上发送一个字节数据，共8位，所以定义循环计数变量i
+  while (i--)
   {
     if ((sData & 0x80) == 0x80) //判断要发送的数据最高位是否为1
     {
-      SDA = 1; //如果满足，则发送位置为1
+      SDA = 1; //如果，则发送位置为1
       SCL = 1;
       delayNOP();
       SDA = 0;
@@ -137,24 +137,24 @@ void DAC_PCF8591(unsigned char controlByte, unsigned char wData)
   iic_start();                //启动I2C通信
   IICSendByte(PCF8591_WRITE); //发送地址位
   check_ACK();                //检查应答位
-  if (F0 == 1)                //如果非应答标志为1，表示器件错误或已坏，置错误标志位SystemError为1
+  if (F0 == 1)                //如果无法应答标志为1，表示器件错误或已坏，置错误标志位SystemError为1
   {
-    SystemError = 1;
-    return; //此句是否可不写
+    SystemError = 1;//将错误信息变量设为1
+    return 0; //如果器件错误，则返回0，结束整个系统程序
   }
   IICSendByte(controlByte & 0x77); //0x77=0111 0111，屏蔽第4和第8位
   check_ACK();
-  if (F0 == 1) //如果非应答标志为1，表示器件错误或已坏，置错误标志位SystemError为1
+  if (F0 == 1) //如果无法应答标志为1，表示器件错误或已坏，置错误标志位SystemError为1
   {
     SystemError = 1;
-    return; //此句是否可不写
+    return 0; //如果器件错误，则返回0，结束整个系统程序
   }
   IICSendByte(wData);
   check_ACK();
   if (F0 == 1) //如果非应答标志为1，表示器件错误或已坏，置错误标志位SystemError为1
   {
     SystemError = 1;
-    return; //此句是否可不写
+    return 0; //如果器件错误，则返回0，结束整个系统程序
   }
   iic_stop();
   delayNOP();

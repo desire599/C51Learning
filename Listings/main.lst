@@ -1,4 +1,4 @@
-C51 COMPILER V9.60.0.0   MAIN                                                              11/24/2020 16:37:51 PAGE 1   
+C51 COMPILER V9.60.0.0   MAIN                                                              11/26/2020 23:45:08 PAGE 1   
 
 
 C51 COMPILER V9.60.0.0, COMPILATION OF MODULE MAIN
@@ -8,236 +8,161 @@ COMPILER INVOKED BY: C:\Program Files (x86)\Keil_v5\C51\BIN\C51.EXE src\main.c O
 
 line level    source
 
-   1          //ÈÎÎñ8-1¿Éµ÷¹âÌ¨µÆ
-   2          //¹¦ÄÜ£ºÀûÓÃPCF8591Ð¾Æ¬½øÐÐDA×ª»»£¬Êä³öÄ£ÄâµçÑ¹¿ØÖÆÌ¨µÆµÄÁÁ¶È
-   3          #include <reg51.h>
-   4          #include <INTRINS.H> //°üº¬_nop_()º¯Êý
-   5          sbit SDA = P2 ^ 7;     //P2.7¶¨ÒåI2CÊý¾ÝÏßÒý½Å
-   6          sbit SCL = P2 ^ 6;     //P2.6¶¨ÒåI2CÊ±ÖÓÏßÒý½Å
-   7          sbit S1 = P1 ^ 1;      //P1.1¿ØÖÆ°´¼ü£¬ÁÁ¶ÈÔö¼Ó
-   8          sbit S2 = P1 ^ 0;      //P1.0¿ØÖÆ°´¼ü£¬ÁÁ¶È¼õÐ¡
-   9          bit bdata SystemError; //´Ó»ú´íÎó±êÖ¾Î»
-  10          //¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ªPCF8591×¨ÓÃ±äÁ¿¶¨Òå¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª
-  11          #define PCF8591_WRITE 0x90 //Æ÷¼þÐ´µØÖ·£¬¾ßÌå²Î¿¼Ð¾Æ¬Ê¹ÓÃÊÖ²á
-  12          #define PCF8591_READ 0x91  //Æ÷¼þ¶ÁµØÖ·
-  13          
-  14          void delayNOP()//¶¨ÒåÑÓÊ±º¯Êý£¬ÆäÖ´ÐÐÓï¾äÎª4¸ö¿ÕÔËÐÐÖ¸Áî£¬´Ó¶øÊµÏÖÑÓÊ±4¸ö»úÆ÷ÖÜÆÚ£¬ÔÚ12MHz¾§ÕñÏÂÔ¼4¦Ìs
-  15          {
-  16   1        _nop_();//¿ÕÔËÐÐÒ»´ÎËùÐèÊ±¼äÎª1¸ö»úÆ÷ÖÜÆÚ
-  17   1        _nop_();
-  18   1        _nop_();
-  19   1        _nop_();
-  20   1      } 
-  21          //º¯ÊýÃû£ºiic_start
-  22          //¹¦ÄÜ£ºÆô¶¯I2C×ÜÏß£¬¼´·¢ËÍI2CÆðÊ¼Ìõ¼þ£¬ÐÎ²Î£ºÎÞ£¬·µ»ØÖµ£ºÎÞ
-  23          void iic_start()
-  24          {
-  25   1        EA = 0;  //¹ØÖÐ¶Ï
-  26   1        SDA = 1; //Ê±ÖÓ±£³Ö¸ßµçÆ½£¬Êý¾ÝÏß´Ó¸ßµ½µÍÒ»´ÎÌø±ä£¬I2CÍ¨ÐÅ¿ªÊ¼
-  27   1        SCL = 1;
-  28   1        delayNOP(); //ÆðÊ¼Ìõ¼þ½¨Á¢Ê±¼äÐèÒª´óÓÚ4.7¦Ìs£¬ËùÒÔµ÷ÓÃÑÓÊ±º¯Êý
-  29   1        SDA = 0;
-  30   1        delayNOP(); //ÆðÊ¼Ìõ¼þËø¶¨Ê±¼äÐèÒª´óÓÚ4.7¦Ìs£¬ËùÒÔµ÷ÓÃÑÓÊ±º¯Êý
-  31   1        SCL = 0;    //Ç¯×¡I2C×ÜÏß£¬×¼±¸·¢ËÍ»ò½ÓÊÕÊý¾Ý
-  32   1      }
-  33          
-  34          //º¯ÊýÃû£ºiic_stop
-  35          //¹¦ÄÜ£ºÍ£Ö¹I2C×ÜÏßÊý¾Ý´«ËÍ£¬ÐÎ²Î£ºÎÞ£¬·µ»ØÖµ£ºÎÞ
-  36          void iic_stop()
-  37          {
-  38   1        SDA = 0; //Ê±ÖÓ±£³Ö¸ß£¬Êý¾ÝÏß´ÓµÍµ½¸ßÒ»´ÎÌø±ä£¬I2CÍ¨ÐÅÍ£Ö¹
-  39   1        SCL = 1;
-  40   1        delayNOP(); //ÆðÊ¼Ìõ¼þ½¨Á¢Ê±¼äÐèÒª´óÓÚ4.7¦Ìs£¬ËùÒÔµ÷ÓÃÑÓÊ±º¯Êý
-  41   1        SDA = 1;
-  42   1        delayNOP(); //ÆðÊ¼Ìõ¼þËø¶¨Ê±¼äÐèÒª´óÓÚ4.7¦Ìs£¬ËùÒÔµ÷ÓÃÑÓÊ±º¯Êý
-  43   1        SCL = 0;    //Ç¯×¡I2C×ÜÏß£¬×¼±¸·¢ËÍ»ò½ÓÊÕÊý¾Ý
-  44   1      }
-  45          
-  46          //º¯ÊýÃû£ºslave_ACK
-  47          //º¯Êý¹¦ÄÜ£º´Ó»ú·¢ËÍÓ¦´ðÎ»£¬ÐÎ²Î£ºÎÞ£¬·µ»ØÖµ£ºÎÞ
-  48          void slave_ACK()
-  49          {
-  50   1        SDA = 0;
-  51   1        SCL = 1;
-  52   1        delayNOP();
-  53   1        SDA = 1;
-  54   1        SCL = 0;
-C51 COMPILER V9.60.0.0   MAIN                                                              11/24/2020 16:37:51 PAGE 2   
+   1          #include <reg52.h>
+   2          #include <intrins.h>
+   3          sbit SCL = P1 ^ 7;   //I2CÊ±ÖÓÒý½Å
+   4          sbit SDA = P1 ^ 6;   //I2CÊý¾ÝÊäÈëÊä³öÒý½Å
+   5          bit bdata IIC_ERROR; //I2CÓ¦´ð´íÎó±êÖ¾Î»£¬ÆäÖÐIIC_ERRORÎª×Ô¶¨Òå±äÁ¿Ãû£¬bdata£º¶¨ÒåµÄ±äÁ¿ÔÚ20H~2FHµÄRAM£¬16
+             -byte·¶Î§£¬±äÁ¿¿É¶ÁÐ´¡£²»Ð´bdataÒ²¿ÉÒÔ£¬ÓÉÏµÍ³Ëæ»ú·ÖÅäÄÚ´æ¿Õ¼ä
+   6          //ÑÓÊ±4Î¢Ãëº¯Êý
+   7          void Delay4us()
+   8          {
+   9   1          _nop_();
+  10   1          _nop_();
+  11   1          _nop_();
+  12   1          _nop_();
+  13   1      }
+  14          
+  15          //1¡¢º¯ÊýÃû£ºiic_start
+  16          //¹¦ÄÜ£ºÆô¶¯I2C×ÜÏß£¬¼´·¢ËÍI2CÆðÊ¼Ìõ¼þ£¬ÐÎ²Î£ºÎÞ£¬·µ»ØÖµ£ºÎÞ
+  17          void IIC_Start()
+  18          {
+  19   1          SDA = 1;    //Êý¾ÝÏß¸ßµçÆ½
+  20   1          SCL = 1;    //Ê±ÖÓÏß¸ßµçÆ½
+  21   1          Delay4us(); //ÆðÊ¼Ìõ¼þ½¨Á¢Ê±¼äÐèÒª´óÓÚ4.7¦Ìs£¬ËùÒÔµ÷ÓÃÑÓÊ±º¯Êý
+  22   1          SDA = 0;    //ÔÚÊ±ÖÓÏß¸ßµçÆ½Ê±£¬SDAÊý¾ÝÏß´Ó¸ßµçÆ½×ªÎªµÍµçÆ½Ò»´ÎÌø±ä£¬ÔòI2CÍ¨ÐÅ¿ªÊ¼Æô¶¯
+  23   1          Delay4us();
+  24   1          SCL = 0; //¸´Î»Ê±ÖÓÏßÎªµÍµçÆ½£¬ÕâÑù²ÅÄÜÔÊÐí½ÓÏÂÀ´ÐÞ¸ÄSDA´«ÊäµÄÊý¾Ý£¬½øÐÐ¶ÁÐ´Êý¾Ý
+  25   1      }
+  26          
+  27          //5¡¢º¯ÊýÃû£ºiic_stop
+  28          //¹¦ÄÜ£ºÍ£Ö¹I2C×ÜÏßÊý¾Ý´«ËÍ£¬ÐÎ²Î£ºÎÞ£¬·µ»ØÖµ£ºÎÞ
+  29          void IIC_Stop()
+  30          {
+  31   1          SDA = 0;    //Êý¾ÝÏßµÍµçÆ½
+  32   1          SCL = 1;    //Ê±ÖÓÏß¸ßµçÆ½
+  33   1          Delay4us(); //ÆðÊ¼Ìõ¼þ½¨Á¢Ê±¼äÐèÒª´óÓÚ4.7¦Ìs£¬ËùÒÔµ÷ÓÃÑÓÊ±º¯Êý
+  34   1          SDA = 1;    //ÔÚÊ±ÖÓÏß¸ßµçÆ½Ê±£¬SDAÊý¾ÝÏß´ÓµÍµçÆ½×ªÎª¸ßµçÆ½Ò»´ÎÌø±ä£¬ÔòI2CÍ¨ÐÅ½áÊø
+  35   1          Delay4us();
+  36   1          SCL = 0; //¸´Î»Ê±ÖÓÏßÎªµÍµçÆ½£¬ÕâÑù²ÅÄÜÔÊÐí½ÓÏÂÀ´ÐÞ¸ÄSDA´«ÊäµÄÊý¾Ý£¬½øÐÐ¶ÁÐ´Êý¾Ý
+  37   1      }
+  38          
+  39          //2¡¢º¯ÊýÃû£ºIICSendByte
+  40          //º¯Êý¹¦ÄÜ£ºÖ÷»ú£¨¼´µ¥Æ¬»ú£©·¢ËÍÒ»¸ö×Ö½Ú£¨Ò»¸ö×Ö½ÚÓÉ8Î»¶þ½øÖÆ×é³É£©¸øI2CÉè±¸¡£ÐÎ²Î£ºÒª·¢ËÍµÄÊý¾Ý¡£·µ»ØÖµ£º
+             -ÎÞ¡£
+  41          void IIC_SendByte(unsigned char sendData)
+  42          {
+  43   1          unsigned char i = 8;    //ÓÉÓÚÒªÏòSDAÉÏ·¢ËÍÒ»¸ö×Ö½ÚÊý¾Ý£¬¹²8Î»£¬ËùÒÔ¶¨ÒåÑ­»·¼ÆÊý±äÁ¿i
+  44   1          for (i = 0; i < 8; i++) //Ñ­»·ÒÆÈë8Î»
+  45   1          {
+  46   2              SDA = (bit)(sendData & 0x80); //´ËÊ±Ç°ÃæIIC_startÊ±£¬SCLÎªµÍµçÆ½£¬ÕâÑù²Å¿ÉÒÔ·ÅÈëÊý¾Ýµ½SDA
+  47   2              //ÒòÎªSDAÊ×ÏÈ´«ËÍµÄÊÇ×î¸ßÎ»£¬ËùÒÔÒªÆÁ±ÎÊ£ÏÂµÄµÍ7Î»£¬Óë0x80×ö¡°&ÓëÔËËã¡±
+  48   2              //£¨bit£©ÎªÇ¿ÖÆ½«·¢ËÍÊý¾ÝÓëÔËËãÖ®ºóµÄ½á¹û×ª»»ÎªÎ»£¨¼´Îª1»ò0£©£¬×îºó°ÑÆä´æÈëSDAÊý¾ÝÏß
+  49   2              SCL = 1;        //ÔÙ°ÑSCLÉèÎª1£¬ÈÃSDAÊý¾ÝÏßÉÏµÄÊý¾ÝÎÈ¶¨£¬Íê³ÉÊý¾ÝµÄ·¢ËÍ
+  50   2              Delay4us();     //µÈ´ý4¸ö»úÆ÷ÖÜÆÚºó£¬È·±£ÒÑ¾­·¢ËÍÍê±Ï
+  51   2              SCL = 0;        //¸´Î»SCLÎª0£¬ÕâÑùÏÂÒ»´Î²ÅÄÜ°ÑÊý¾Ý´æÈëSDAÊý¾ÝÏßÖÐ
+  52   2              sendData <<= 1; //°ÑÒª·¢ËÍµÄÊý¾Ý×óÒÆ1Î»£¬¼ÌÐøÓë0x80×öÓëÔËËã£¬ÕâÑùÊµÏÖÖð¸ö°ÑÊý¾Ý£¨¼´8Î»¶þ½øÖÆ£©·Ö8´
+C51 COMPILER V9.60.0.0   MAIN                                                              11/26/2020 23:45:08 PAGE 2   
 
+             -ÎÍê³É·¢ËÍ
+  53   2          }
+  54   1          Delay4us();
   55   1      }
   56          
-  57          //º¯ÊýÃû£ºslave_NOACK
-  58          //º¯Êý¹¦ÄÜ£º´Ó»ú·¢ËÍ·ÇÓ¦´ðÎ»£¬ÆÈÊ¹Êý¾Ý´«Êä¹ý³Ì½áÊø¡£ÐÎ²Î£ºÎÞ¡£·µ»ØÖµ£ºÎÞ
-  59          void slave_NOACK()
+  57          //4¡¢º¯ÊýÃû£ºcheck_ACK
+  58          //º¯Êý¹¦ÄÜ£ºÖ÷»ú£¨¼´µ¥Æ¬»ú£©ÔÚ·¢ÍêÒ»½ÚÊý¾ÝºóÒª¶ÁÈ¡µÄI2CÉè±¸·´À¡µÄÓ¦´ðÐÅºÅ¡£ÐÎ²Î£ºÎÞ¡£·µ»ØÖµ£ºÎÞ¡£
+  59          void check_ACK()
   60          {
-  61   1        SDA = 1;
-  62   1        SCL = 1;
-  63   1        delayNOP();
-  64   1        SDA = 0;
-  65   1        SCL = 0;
-  66   1      }
-  67          
-  68          //º¯ÊýÃû£ºcheck_ACK
-  69          //º¯Êý¹¦ÄÜ£ºÖ÷»úÓ¦´ðÎ»¼ì²é£¬ÆÈÊ¹Êý¾Ý´«Êä¹ý³Ì½áÊø¡£ÐÎ²Î£ºÎÞ¡£·µ»ØÖµ£ºÎÞ¡£
-  70          void check_ACK()
-  71          {
-  72   1        SDA = 1; //½«I/OÉèÖÃ³ÉÊäÈë£¬±ØÐëÏÈÏò¶Ë¿ÚÐ´1
-  73   1        SCL = 1;
-  74   1        F0 = 0;
-  75   1        if (SDA == 1) //ÈôSDA=1±íÃ÷·ÇÓ¦´ð£¬ÖÃÎ»·ÇÓ¦´ð±êÖ¾F0
-  76   1        {
-  77   2          F0 = 1;
-  78   2        }
-  79   1        SCL = 0;
-  80   1      }
-  81          
-  82          //º¯ÊýÃû£ºIICSendByte
-  83          //º¯Êý¹¦ÄÜ£º·¢ËÍÒ»¸ö×Ö½Ú£¨Ò»¸ö×Ö½ÚÓÉ8Î»¶þ½øÖÆ×é³É£©¡£ÐÎ²Î£ºÒª·¢ËÍµÄÊý¾Ý¡£·µ»ØÖµ£ºÎÞ¡£
-  84          void IICSendByte(unsigned char sData)
-  85          {
-  86   1        unsigned char idata n = 8; //ÏòSDAÉÏ·¢ËÍÒ»¸ö×Ö½ÚÊý¾Ý£¬¹²8Î»
-  87   1        while (n--)
-  88   1        {
-  89   2          if ((sData & 0x80) == 0x80) //ÅÐ¶ÏÒª·¢ËÍµÄÊý¾Ý×î¸ßÎ»ÊÇ·ñÎª1
-  90   2          {
-  91   3            SDA = 1; //Èç¹ûÂú×ã£¬Ôò·¢ËÍÎ»ÖÃÎª1
-  92   3            SCL = 1;
-  93   3            delayNOP();
-  94   3            SDA = 0;
-  95   3            SCL = 0;
-  96   3          }
-  97   2          else
-  98   2          {
-  99   3            SDA = 0; //Èç¹û²»Âú×ã£¬Ôò·¢ËÍÎ»ÖÃÎª0
- 100   3            SCL = 1;
- 101   3            delayNOP();
- 102   3            SCL = 0;
- 103   3          }
- 104   2          sData = sData << 1; //°ÑÒª´«ÊäµÄÊý¾ÝµÄÎ»×óÒÆÒ»Î»½øÐÐÏÂÒ»¸öÑ­»·ÅÐ¶Ï
- 105   2        }
- 106   1      }
- 107          
- 108          //º¯Êý£ºIICReceiveByte
- 109          //º¯Êý¹¦ÄÜ£º½ÓÊÕÒ»¸ö×Ö½ÚÊý¾Ý¡£ÐÎ²Î£ºÎÞ¡£·µ»ØÖµ£º·µ»Ø½ÓÊÕµÄÊý¾Ý
- 110          unsigned char IICReceiveByte()
- 111          {
- 112   1        unsigned char idata n = 8; //´ÓSDAÏßÉÏ¶ÁÈ¡Ò»¸ö×Ö½ÚÊý¾Ý£¬¹²8Î»
- 113   1        unsigned char rData;       //¶¨Òå´æ·ÅÊý¾ÝµÄ±äÁ¿rData
- 114   1        while (n--)
- 115   1        {
- 116   2          SDA = 1;
-C51 COMPILER V9.60.0.0   MAIN                                                              11/24/2020 16:37:51 PAGE 3   
+  61   1          SDA = 1;         //´ËÊ±I2CÉè±¸Ç¿ÖÆÉèÎª¶ÁÈ¡×´Ì¬£¬¼´µ¥Æ¬»ú¶ÁÈ¡I2CµÄÓ¦´ðÐÅºÅ£¬ËùÒÔÏòSDAÐ´Èë1¡£¶øSDAÐ´Èë0£
+             -¬ÊÇÐ´ÈëÊý¾Ýµ½PCF8591Ð¾Æ¬
+  62   1          SCL = 1;         //½«Ê±ÖÓÏßÖÃÎª1£¬¿ÉÒÔÎÈ¶¨SDAµÄÊý¾Ý£¬½øÐÐÊý¾Ý¶ÁÈ¡
+  63   1          Delay4us();      //µÈ´ý¶ÁÈ¡Êý¾ÝµÄÍê³É
+  64   1          IIC_ERROR = SDA; //°Ñ´ËÊ±¶ÁÈ¡µÄSDAÐÅºÅ´æÈëIIC_ERROR±äÁ¿£¬Èç¹ûIIC_ERROR´æµÄÖµÎª1£¬±íÊ¾³öÏÖÓ¦´ð´íÎó£¬Èç¹
+             -ûÊÇ0£¬ÔòÕý³£Ó¦´ðÍ¨ÐÅ
+  65   1          SCL = 0;         //¸´Î»Ê±ÖÓÏßÎªµÍµçÆ½£¬ÕâÑù²ÅÄÜÔÊÐí½ÓÏÂÀ´ÐÞ¸ÄSDA´«ÊäµÄÊý¾Ý
+  66   1          Delay4us();
+  67   1      }
+  68          
+  69          //5¡¢º¯Êý£ºIICReceiveByte
+  70          //º¯Êý¹¦ÄÜ£ºÖ÷»ú£¨¼´µ¥Æ¬»ú£©½ÓÊÕ´ÓI2C·µ»ØµÄÒ»¸ö×Ö½ÚÊý¾Ý¡£ÐÎ²Î£ºÎÞ¡£·µ»ØÖµ£º·µ»Ø½ÓÊÕµÄÊý¾Ý
+  71          unsigned char IIC_ReceiveByte()
+  72          {
+  73   1          unsigned char i = 8;       //ÓÉÓÚI2CÉè±¸Òª·µ»ØÒ»¸ö×Ö½ÚÊý¾Ý¸øÖ÷»ú£¨¼´µ¥Æ¬»ú£©£¬¹²8Î»£¬ËùÒÔ¶¨ÒåÑ­»·¼ÆÊý±
+             -äÁ¿i
+  74   1          unsigned char receiveData; //¶¨Òå´æ·ÅÊý¾ÝµÄ±äÁ¿receiveData
+  75   1          while (i--)
+  76   1          {
+  77   2              SDA = 1;      //´ËÊ±I2CÉè±¸Ç¿ÖÆÉèÎª¶ÁÈ¡×´Ì¬£¬¼´µ¥Æ¬»ú½ÓÊÕI2CµÄ·µ»ØÊý¾Ý£¬ËùÒÔÏòSDAÐ´Èë1¡£¶øSDAÐ´Èë0
+             -£¬ÊÇÐ´ÈëÊý¾Ýµ½PCF8591Ð¾Æ¬
+  78   2              SCL = 1;      //½«Ê±ÖÓÏßÖÃÎª1£¬¿ÉÒÔÎÈ¶¨SDAµÄÊý¾Ý£¬½øÐÐÊý¾Ý¶ÁÈ¡
+  79   2              Delay4us();   //µÈ´ý¶ÁÈ¡Êý¾ÝµÄÍê³É
+  80   2              if (SDA == 1) //ÒòÎªÊý¾ÝÏßSDAÃ¿´ÎÖ»ÄÜ¶ÁÐ´Ò»Î»£¬ËùÒÔÒª·Ö8´ÎÒ»¸ö¸ö´æÈëµ½receiveData±äÁ¿ÖÐ
+  81   2              {
+  82   3                  receiveData = receiveData | 0x01; //Èô½ÓÊÕµ½µÄÎ»Îª1£¬ÔòÖ»°ÑreceiveDataµÄ×îºóÒ»Î»ÉèÎª1¡£
+  83   3                  //ÒòÎª´ÓI2CÉè±¸·µ»ØµÄÊý¾ÝÊÇÃ¿´Î´Ó×î¸ßÎ»´«Êä¹ýÀ´µÄ£¬ËùÒÔÖ÷»ú½ÓÊÕÃ¿´ÎÏÈ·Åµ½×îµÍÎ»£¬ÔÙÓÃ×óÒÆÔËËã8
+             -´Î¾Í»Øµ½×î¸ßÎ»ÁË
+  84   3              }
+  85   2              else
+  86   2              {
+  87   3                  receiveData = receiveData & 0xfe; //Èô½ÓÊÕµ½µÄÎ»Îª0£¬ÔòÖ»°ÑreceiveDataµÄ×îºóÒ»Î»ÉèÎª0
+  88   3              }
+  89   2              SCL = 0;                        //¸´Î»Ê±ÖÓÏßÎªµÍµçÆ½£¬ÕâÑù²ÅÄÜÔÊÐí½ÓÏÂÀ´ÐÞ¸ÄSDA´«ÊäµÄÊý¾Ý
+  90   2              receiveData = receiveData << 1; //½Ó×Å°Ñ´æ´¢½ÓÊÕÊý¾ÝµÄ±äÁ¿×óÒÆ1Î»£¬ÒÔ±ã´æ´¢ÏÂÒ»¸ö·µ»ØÊý¾ÝµÄÎ»¡£´Ó¶
+             -øÊµÏÖÖð¸öÎ»À´±£´æ´ÓSDAÊý¾ÝÏß¶ÁÈ¡µÄÊý¾Ý
+  91   2          }
+  92   1          return receiveData;
+  93   1      }
+  94          
+  95          //·¢ËÍÒ»¸ö8Î»Êý²¢DA×ª»»³ÉÄ£ÄâÁ¿Êä³ö
+  96          void DAC_PCF8591(unsigned char controlByte, unsigned char writeData)
+  97          {
+  98   1          IIC_Start();               //1¡¢Æô¶¯Í¨ÐÅ
+  99   1          IIC_SendByte(0x90);        //2¡¢·¢ËÍÐ´µØÖ·
+ 100   1          check_ACK();               //3¡¢Ã¿´Î·¢ËÍÒ»¸ö×Ö½Ú¾ÍÒª¼ì²éÓ¦´ðÎ»
+ 101   1          if (IIC_ERROR == 1)        //¸ù¾ÝÓ¦´ðÐÅºÅµÄ·´À¡ÖµÅÐ¶ÏÊÇ·ñÓ¦´ðÊ§°Ü£¬Èç¹û´íÎó±äÁ¿Îª1
+ 102   1              return ;              //Ôò·µ»Ø0£¬½áÊøÕû¸öÏµÍ³³ÌÐò
+ 103   1          IIC_SendByte(controlByte); //·¢ËÍ¿ØÖÆ×Ö½Ú
+ 104   1          check_ACK();               //Ã¿´Î·¢ËÍÒ»¸ö×Ö½Ú¾ÍÒª¼ì²éÓ¦´ðÎ»
+ 105   1          if (IIC_ERROR == 1)
+ 106   1              return ;
+ 107   1          IIC_SendByte(writeData);
+C51 COMPILER V9.60.0.0   MAIN                                                              11/26/2020 23:45:08 PAGE 3   
 
- 117   2          SCL = 1;
- 118   2          rData = rData << 1; //°Ñ½ÓÊÕÊý¾ÝµÄ×óÒÆ1Î»
- 119   2          if (SDA == 1)
- 120   2          {
- 121   3            rData = rData | 0x01; //Èô½ÓÊÕµ½µÄÎ»Îª1£¬ÔòÊý¾ÝµÄ×îºóÒ»Î»ÖÃÎª1
- 122   3          }
- 123   2          else
- 124   2          {
- 125   3            rData = rData & 0xfe; //·ñÔò¸ÃÊý¾ÝµÄ×îºóÒ»Î»ÇåÁã
- 126   3          }
- 127   2          SCL = 0;
- 128   2        }
- 129   1        return rData;
- 130   1      }
- 131          
- 132          //º¯ÊýÃû£ºDAC_PCF8591
- 133          //º¯Êý¹¦ÄÜ£º·¢ËÍnÎ»Êý¾Ý
- 134          //ÐÎ²Î£ºcontrolÎª¿ØÖÆ×Ö´æ·Å±äÁ¿£¬wDataÎªÒª×ª»»µÄÊý×ÖÁ¿¡£·µ»ØÖµ£ºÎÞ
- 135          void DAC_PCF8591(unsigned char controlByte, unsigned char wData)
- 136          {
- 137   1        iic_start();                //Æô¶¯I2CÍ¨ÐÅ
- 138   1        IICSendByte(PCF8591_WRITE); //·¢ËÍµØÖ·Î»
- 139   1        check_ACK();                //¼ì²éÓ¦´ðÎ»
- 140   1        if (F0 == 1)                //Èç¹û·ÇÓ¦´ð±êÖ¾Îª1£¬±íÊ¾Æ÷¼þ´íÎó»òÒÑ»µ£¬ÖÃ´íÎó±êÖ¾Î»SystemErrorÎª1
- 141   1        {
- 142   2          SystemError = 1;
- 143   2          return; //´Ë¾äÊÇ·ñ¿É²»Ð´
- 144   2        }
- 145   1        IICSendByte(controlByte & 0x77); //0x77=0111 0111£¬ÆÁ±ÎµÚ4ºÍµÚ8Î»
- 146   1        check_ACK();
- 147   1        if (F0 == 1) //Èç¹û·ÇÓ¦´ð±êÖ¾Îª1£¬±íÊ¾Æ÷¼þ´íÎó»òÒÑ»µ£¬ÖÃ´íÎó±êÖ¾Î»SystemErrorÎª1
- 148   1        {
- 149   2          SystemError = 1;
- 150   2          return; //´Ë¾äÊÇ·ñ¿É²»Ð´
- 151   2        }
- 152   1        IICSendByte(wData);
- 153   1        check_ACK();
- 154   1        if (F0 == 1) //Èç¹û·ÇÓ¦´ð±êÖ¾Îª1£¬±íÊ¾Æ÷¼þ´íÎó»òÒÑ»µ£¬ÖÃ´íÎó±êÖ¾Î»SystemErrorÎª1
- 155   1        {
- 156   2          SystemError = 1;
- 157   2          return; //´Ë¾äÊÇ·ñ¿É²»Ð´
- 158   2        }
- 159   1        iic_stop();
- 160   1        delayNOP();
- 161   1        delayNOP();
- 162   1        delayNOP();
- 163   1        delayNOP();
- 164   1      }
- 165          
- 166          //º¯ÊýÃû£ºdelay_ms
- 167          //¹¦ÄÜ£º²ÉÓÃ¶¨Ê±Æ÷T1ÑÓÊ±tºÁÃë£¬²ÉÓÃ¹¤×÷·½Ê½1£¬¶¨Ê±Æ÷³õÊ¼ÖµÎª64536£¬Ã¿´Î¼ÆÊ±1ms£¨¼´1000´Î£©
- 168          //ÐÎ²Î£ºÑÓÊ±ºÁÃëÊý£¨Ð¡ÓÚ255ms£©¡£·µ»ØÖµ£ºÎÞ
- 169          void delay_ms(unsigned char t)
- 170          {
- 171   1        unsigned char i; //Ñ­»·¼ÆÊý±äÁ¿
- 172   1        TMOD = 0x10;     //ÉèÖÃT1¶¨Ê±Æ÷£¬¹¤×÷·½Ê½Îª1£¬16Î»¼ÆÊýÆ÷
- 173   1        for (i = 0; i < t; i++)
- 174   1        {
- 175   2          TH1 = (65536 - 1000) / 256; //ÉèÖÃ¶¨Ê±Æ÷£¨¼ÆÊýÆ÷£©³õÊ¼Öµ
- 176   2          TL1 = (65536 - 1000) % 256;
- 177   2          TR1 = 1; //Æô¶¯¶¨Ê±Æ÷T1
- 178   2          while (!TF1)
-C51 COMPILER V9.60.0.0   MAIN                                                              11/24/2020 16:37:51 PAGE 4   
-
- 179   2            ;      //²éÑ¯¼ÆÊýÊÇ·ñÒç³ö£¬·ñÔò¿ÕÔËÐÐµÈ´ý
- 180   2          TF1 = 0; //1ms¶¨Ê±µ½ÁË£¬¶ÔÒç³ö±êÖ¾Î»ÇåÁã
- 181   2        }
- 182   1      }
- 183          
- 184          void main()
- 185          {
- 186   1        unsigned char voltage; //Êä³öµçÑ¹ÖµµÄ±äÁ¿£¬Êý×ÖÁ¿0¶ÔÓ¦0.0v£¬255¶ÔÓ¦+5.0v
- 187   1        voltage = 125;         //³õÊ¼µçÑ¹ÖµÔ¼Îª2.5V£¬ÕâÑùLEDµÆÓÐ³õÊ¼ÁÁ¶È
- 188   1        while (1)
- 189   1        {
- 190   2          DAC_PCF8591(0x40, voltage); //¶Ô¿ØÖÆ×ÖÐ´0100 0000±íÊ¾ÔÊÐíÄ£ÄâÁ¿Êä³ö£¬²¢Ð´ÈëÊý×ÖÁ¿voltage
- 191   2          if (S1 == 0)                //°´¼üS1°´ÏÂ£¬Ì¨µÆÁÁ¶ÈÔö¼Ó
- 192   2          {
- 193   3            delay_ms(10); //°´¼üÑÓÊ±Ïû¶¶
- 194   3            if (S1 == 0)
- 195   3            {
- 196   4              if (voltage == 255)
- 197   4                voltage = 125; //µ±µçÑ¹±äµ½×î´óÊ±£¬ÓÖ»Ö¸´ÖÐ¼äÖµ
- 198   4              else
- 199   4                voltage = voltage + 5; //Ã¿´ÎÔö¼Ó5
- 200   4            }
- 201   3          }
- 202   2          if (S2 == 0) //°´¼üS2°´ÏÂ£¬Ì¨µÆÁÁ¶È¼õÐ¡
- 203   2          {
- 204   3            delay_ms(10); //°´¼üÑÓÊ±Ïû¶¶
- 205   3            if (S2 == 0)
- 206   3            {
- 207   4              if (voltage == 0)
- 208   4                voltage = 125; //µ±µçÑ¹±äµ½×î´óÊ±£¬ÓÖ»Ö¸´ÖÐ¼äÖµ
- 209   4              else
- 210   4                voltage = voltage - 5; //Ã¿´Î¼õÐ¡5
- 211   4            }
- 212   3          }
- 213   2          delay_ms(1); //Ã¿´ÎÑÓÊ±1ms
- 214   2        }
- 215   1      }
+ 108   1          check_ACK(); //Ã¿´Î·¢ËÍÒ»¸ö×Ö½Ú¾ÍÒª¼ì²éÓ¦´ðÎ»
+ 109   1          if (IIC_ERROR == 1)
+ 110   1              return ;
+ 111   1          IIC_Stop();
+ 112   1      }
+ 113          
+ 114          // Ïò PCF8591·¢ËÍÈô¸É×Ö½Ú½øÐÐDA×ª»»²¢Êä³ö¾â³Ý²¨
+ 115          //Ö÷³ÌÐò
+ 116          void main()
+ 117          {
+ 118   1          unsigned char i;
+ 119   1          unsigned int j;
+ 120   1          while (1)
+ 121   1          {
+ 122   2              for (i = 0; i < 255; i++)
+ 123   2              {
+ 124   3                  DAC_PCF8591(0x40, i);//°Ñ¿ØÖÆ×ÖºÍÊý×ÖÁ¿¸³Öµ¸øDA×ª»»µÄº¯Êý
+ 125   3                  for(j=0;j<3000;j++);//Ã¿´ÎÑÓÊ±Ô¼30ms
+ 126   3              }
+ 127   2              for (i = 255; i > 0; i--)
+ 128   2              {
+ 129   3                  DAC_PCF8591(0x40, i);
+ 130   3                  for(j=0;j<3000;j++);//Ã¿´ÎÑÓÊ±Ô¼30ms
+ 131   3              }
+ 132   2          }
+ 133   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =    302    ----
+   CODE SIZE        =    222    ----
    CONSTANT SIZE    =   ----    ----
    XDATA SIZE       =   ----    ----
    PDATA SIZE       =   ----    ----
    DATA SIZE        =   ----    ----
-   IDATA SIZE       =   ----       2
+   IDATA SIZE       =   ----    ----
    BIT SIZE         =      1    ----
 END OF MODULE INFORMATION.
 
