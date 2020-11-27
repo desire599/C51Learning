@@ -1,9 +1,11 @@
-﻿//任务8-2单片机与PCF芯片做AD和DA转换
+﻿//任务8-3单片机通过DA转换控制LED-最终的程序
 #include <reg52.h>
-#include <intrins.h> //包含nop函数
-sbit SCL = P1 ^ 7;   //I2C时钟引脚
-sbit SDA = P1 ^ 6;   //I2C数据输入输出引脚
-bit bdata IIC_ERROR; //I2C应答错误标志位，其中IIC_ERROR为自定义变量名，bdata：定义的变量在20H~2FH的RAM，16byte范围，变量可读写。不写bdata也可以，由系统随机分配内存空间
+#include <intrins.h>     //包含nop函数
+sbit SCL = P1 ^ 7;       //I2C时钟引脚
+sbit SDA = P1 ^ 6;       //I2C数据输入输出引脚
+sbit lightUp = P3 ^ 0;   //灯光增加按键P3.0
+sbit lightDown = P3 ^ 1; //灯光调暗按键P3.1
+bit bdata IIC_ERROR;     //I2C应答错误标志位，其中IIC_ERROR为自定义变量名，bdata：定义的变量在20H~2FH的RAM，16byte范围，变量可读写。不写bdata也可以，由系统随机分配内存空间
 //延时4微秒函数。每个nop函数执行一个机器周期，所以12MHz的晶振产生1μs的机器周期
 void Delay4us()
 {
@@ -93,57 +95,6 @@ unsigned char IIC_ReceiveByte()
     return receiveData;
 }
 
-//函数名：send_ACK
-//函数功能：单片机接收到PCF芯片的返回值时，发送应答位给PCF芯片
-void send_ACK()
-{
-    SDA = 0; //由于上一步的操作SCL=0，此时人为从单片机向PCF芯片发送一个SDA的低电平，表示单片机已经收到数据了
-    SCL = 1; //时钟线设1，稳定数据，把上面的设置发送过去
-    Delay4us();
-    SDA = 1; //
-    SCL = 0; //复位时钟线为低电平，这样才能允许接下来修改SDA传输的数据
-    Delay4us();
-}
-
-//函数名：send_NoACK
-//函数功能：单片机再发送无法应答位给PCF芯片，自动结束
-void send_NoACK()
-{
-    SDA = 1; //从单片机发送一个高电平给PCF芯片，表示非应答，也就是无法应答自动结束
-    SCL = 1; //时钟线设1，稳定数据，把上面的设置发送过去
-    Delay4us();
-    SDA = 0; //复位数据线
-    SCL = 0; //复位时钟线为低电平，这样才能允许接下来修改SDA传输的数据
-    Delay4us();
-}
-
-//先发送信号给PCF芯片，再读取AIN0通道0的电压模拟信号，进行AD转换后，把数字量返回给单片机
-unsigned char ADC_PCF8591(unsigned char controlByte)
-{
-    unsigned char idata receiveFromPCF;
-    IIC_Start();               //1、启动通信
-    IIC_SendByte(0x90);        //2、发送写地址
-    check_ACK();               //3、每次发送一个字节就要检查应答位
-    if (IIC_ERROR == 1)        //根据应答信号的反馈值判断是否应答失败，如果错误变量为1
-        return 0;              //则返回0，结束整个系统程序
-    IIC_SendByte(controlByte); //4、发送控制字节0x00，即表示打开模拟量通道0进行AD转换
-    check_ACK();               //每次发送一个字节就要检查应答位
-    if (IIC_ERROR == 1)
-        return 0;
-    IIC_Stop();         //通信终止
-    IIC_Start();        //5、重新启动通信
-    IIC_SendByte(0x91); //6、发送读地址
-    check_ACK();        //每次发送一个字节就要检查应答位，确保发送完毕
-    if (IIC_ERROR == 1)
-        return 0;
-    receiveFromPCF = IIC_ReceiveByte(); //7、调用单片机接收PCF芯片的程序，把读取的数值
-    check_ACK();
-    send_ACK();            //8、单片机发送应答信号给PCF芯片
-    send_NoACK();          //单片机发送非应答信号给PCF
-    IIC_Stop();            //9、通信终止
-    return receiveFromPCF; //10、返回PCF芯片从外部模拟通道0转换过来的数字量
-}
-
 //发送一个8位数并DA转换成模拟量输出
 void DAC_PCF8591(unsigned char controlByte, unsigned char writeData)
 {
@@ -163,15 +114,45 @@ void DAC_PCF8591(unsigned char controlByte, unsigned char writeData)
     IIC_Stop(); //6、结束通信
 }
 
+//延时函数
+//功能：软件空运算实现粗略延时
+void delay(unsigned int i)
+{
+    while (i--)
+        ;
+}
 // 向 PCF8591发送若干字节进行DA转换并输出锯齿波
 //主程序
 void main()
 {
-    unsigned int i;
+    unsigned char i = 125; //初始数字量为255的中间值，即125，此时电压为2.5V
     while (1)
     {
-        DAC_PCF8591(0x40, ADC_PCF8591(0x00)); //把控制字和数字量赋值给DA转换的函数
-        for (i = 0; i < 10000; i++)
-            ;
+        if (lightUp == 0)
+        {
+            delay(1000);
+            if (lightUp == 0)
+            {
+                //while(!lightUp);
+                //delay(1000);
+                i = i + 5;
+                if (i == 255)
+                    i = 125;
+            }
+        }
+        if (lightDown == 0)
+        {
+            delay(1000);
+            if (lightDown == 0)
+            {
+                //while(!lightDown);
+                //delay(1000);
+                i = i - 5;
+                if (i == 0)
+                    i = 125;
+            }
+        }
+        DAC_PCF8591(0x40, i); //把控制字和数字量赋值给DA转换的函数
+        delay(1000);
     }
 }
