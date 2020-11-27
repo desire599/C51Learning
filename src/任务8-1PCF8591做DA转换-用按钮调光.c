@@ -1,9 +1,11 @@
 ﻿//任务8-3单片机通过DA转换控制LED-最终的程序
 #include <reg52.h>
-#include <intrins.h> //包含nop函数
-sbit SCL = P1 ^ 7;   //I2C时钟引脚
-sbit SDA = P1 ^ 6;   //I2C数据输入输出引脚
-bit bdata IIC_ERROR; //I2C应答错误标志位，其中IIC_ERROR为自定义变量名，bdata：定义的变量在20H~2FH的RAM，16byte范围，变量可读写。不写bdata也可以，由系统随机分配内存空间
+#include <intrins.h>     //包含nop函数
+sbit SCL = P1 ^ 7;       //I2C时钟引脚
+sbit SDA = P1 ^ 6;       //I2C数据输入输出引脚
+sbit lightUp = P3 ^ 0;   //灯光增加按键P3.0
+sbit lightDown = P3 ^ 1; //灯光调暗按键P3.1
+bit bdata IIC_ERROR;     //I2C应答错误标志位，其中IIC_ERROR为自定义变量名，bdata：定义的变量在20H~2FH的RAM，16byte范围，变量可读写。不写bdata也可以，由系统随机分配内存空间
 //延时4微秒函数。每个nop函数执行一个机器周期，所以12MHz的晶振产生1μs的机器周期
 void Delay4us()
 {
@@ -67,33 +69,8 @@ void check_ACK()
     Delay4us();
 }
 
-//5、函数：IICReceiveByte
-//函数功能：主机（即单片机）接收从I2C返回的一个字节数据。形参：无。返回值：返回接收的数据
-unsigned char IIC_ReceiveByte()
-{
-    unsigned char i = 8;       //由于I2C设备要返回一个字节数据给主机（即单片机），共8位，所以定义循环计数变量i
-    unsigned char receiveData; //定义存放数据的变量receiveData
-    while (i--)
-    {
-        SDA = 1;      //此时I2C设备强制设为读取状态，即单片机接收I2C的返回数据，所以向SDA写入1。而SDA写入0，是写入数据到PCF8591芯片
-        SCL = 1;      //将时钟线置为1，可以稳定SDA的数据，进行数据读取
-        Delay4us();   //等待读取数据的完成
-        if (SDA == 1) //因为数据线SDA每次只能读写一位，所以要分8次一个个存入到receiveData变量中
-        {
-            receiveData = receiveData | 0x01; //若接收到的位为1，则只把receiveData的最后一位设为1。
-            //因为从I2C设备返回的数据是每次从最高位传输过来的，所以主机接收每次先放到最低位，再用左移运算8次就回到最高位了
-        }
-        else
-        {
-            receiveData = receiveData & 0xfe; //若接收到的位为0，则只把receiveData的最后一位设为0
-        }
-        SCL = 0;                        //复位时钟线为低电平，这样才能允许接下来修改SDA传输的数据
-        receiveData = receiveData << 1; //接着把存储接收数据的变量左移1位，以便存储下一个返回数据的位。从而实现逐个位来保存从SDA数据线读取的数据
-    }
-    return receiveData;
-}
-
-//发送一个8位数并DA转换成模拟量输出
+//5、函数名：DAC_PCF8591
+//功能：从单片机发送一个数字量到PCF芯片并DA转换成模拟量输出
 void DAC_PCF8591(unsigned char controlByte, unsigned char writeData)
 {
     IIC_Start();               //1、启动通信
@@ -112,25 +89,45 @@ void DAC_PCF8591(unsigned char controlByte, unsigned char writeData)
     IIC_Stop(); //6、结束通信
 }
 
-// 向 PCF8591发送若干字节进行DA转换并输出锯齿波
-//主程序
+//延时函数
+//功能：软件空运算实现粗略延时
+void delay(unsigned int i)
+{
+    while (i--)
+        ;
+}
+
+//主程序：按下灯光增量键或减小键，灯光变亮或变暗
 void main()
 {
-    unsigned char i;
-    unsigned int j;
+    unsigned char i = 125; //初始数字量为255的中间值，即125，此时电压为2.5V
     while (1)
     {
-        for (i = 0; i < 255; i++)
+        if (lightUp == 0)//灯光增强
         {
-            DAC_PCF8591(0x40, i); //把控制字和数字量赋值给DA转换的函数
-            for (j = 0; j < 3000; j++)
-                ; //每次延时约30ms
+            delay(1000);//按键按下延时消抖
+            if (lightUp == 0)
+            {
+                //while(!lightUp);//确保按下再松开才算一次按键按下操作
+                //delay(1000);
+                i = i + 5;
+                if (i == 255)//当数字量增加到8位DA转换芯片的最大分辨率255时
+                    i = 125;
+            }
         }
-        for (i = 255; i > 0; i--)
+        if (lightDown == 0)//灯光减弱
         {
-            DAC_PCF8591(0x40, i);
-            for (j = 0; j < 3000; j++)
-                ; //每次延时约30ms
+            delay(1000);
+            if (lightDown == 0)
+            {
+                //while(!lightDown);
+                //delay(1000);
+                i = i - 5;
+                if (i == 0)
+                    i = 125;
+            }
         }
+        DAC_PCF8591(0x40, i); //把控制字（0x40表示打开模拟量输出）和数字量i赋值给DA转换的函数
+        delay(1000);//效果延时，不加也可以
     }
 }
