@@ -1,9 +1,13 @@
-//任务8-2单片机与PCF芯片做AD和DA转换
+//任务8-2AD转换数码管显示电压值（简易电压表）
 #include <reg52.h>
 #include <intrins.h> //包含nop函数
 sbit SCL = P1 ^ 7;   //I2C时钟引脚
 sbit SDA = P1 ^ 6;   //I2C数据输入输出引脚
+sbit DP = P3 ^ 7;    //定义数码管的DP引脚，即小数点引脚
 bit bdata IIC_ERROR; //I2C应答错误标志位，其中IIC_ERROR为自定义变量名，bdata：定义的变量在20H~2FH的RAM，16byte范围，变量可读写。不写bdata也可以，由系统随机分配内存空间
+//定义全局数组，用于存储4个显示数码管对应的显示值
+unsigned char disp[4] = {0, 0, 0, 0};
+
 //延时4微秒函数。每个nop函数执行一个机器周期，所以12MHz的晶振产生1μs的机器周期
 void Delay4us()
 {
@@ -78,7 +82,7 @@ unsigned char IIC_ReceiveByte()
         SDA = 1;                        //此时I2C设备强制设为读取状态，即单片机接收I2C的返回数据，所以向SDA写入1。而SDA写入0，是写入数据到PCF8591芯片
         SCL = 1;                        //将时钟线置为1，可以稳定SDA的数据，进行数据读取
         Delay4us();                     //等待读取数据的完成
-        receiveData = receiveData << 1; //此句必须写在这里，否则数据会出错。接着把存储接收数据的变量左移1位，以便存储下一个返回数据的位。从而实现逐个位来保存从SDA数据线读取的数据
+        receiveData = receiveData << 1; //这句必须放在这里，否则数据错误，要先把存储接收数据的变量左移1位，以便存储下一个返回数据的位。从而实现逐个位来保存从SDA数据线读取的数据
         if (SDA == 1)                   //因为数据线SDA每次只能读写一位，所以要分8次一个个存入到receiveData变量中
         {
             receiveData = receiveData | 0x01; //若接收到的位为1，则只把receiveData的最后一位设为1。
@@ -137,40 +141,68 @@ unsigned char ADC_PCF8591(unsigned char controlByte)
     if (IIC_ERROR == 1)
         return 0;
     receiveFromPCF = IIC_ReceiveByte(); //7、调用单片机接收PCF芯片的程序，把读取的数值
-    send_ACK();            //8、单片机发送应答信号给PCF芯片
-    send_NoACK();          //单片机发送非应答信号给PCF
-    IIC_Stop();            //9、通信终止
-    return receiveFromPCF; //10、返回PCF芯片从外部模拟通道0转换过来的数字量
+    send_ACK();                         //8、单片机发送应答信号给PCF芯片
+    send_NoACK();                       //9、单片机发送无法应答的信号给PCF芯片，强制让PCF芯片以为无法应答而终止通信，此句必须要有，否则返回的数字量不准确。
+    IIC_Stop();                         //10、通信终止
+    return receiveFromPCF;              //11、返回PCF芯片从外部模拟通道0转换过来的数字量
 }
 
-//发送一个8位数并DA转换成模拟量输出
-void DAC_PCF8591(unsigned char controlByte, unsigned char writeData)
+//数字量与电压值的数据处理函数:dataProcess
+//分别得到电压值的四位数存入数组disp[]中，以便数码管的显示函数进行引用
+void dataProcess(unsigned char digital)
 {
-    IIC_Start();               //1、启动通信
-    IIC_SendByte(0x90);        //2、发送写地址
-    check_ACK();               //3、每次发送一个字节就要检查应答位
-    if (IIC_ERROR == 1)        //根据应答信号的反馈值判断是否应答失败，如果错误变量为1
-        return;                //则返回0，结束整个系统程序
-    IIC_SendByte(controlByte); //4、发送控制字节
-    check_ACK();               //每次发送一个字节就要检查应答位
-    if (IIC_ERROR == 1)
-        return;
-    IIC_SendByte(writeData); //5、发送数字量
-    check_ACK();             //每次发送一个字节就要检查应答位
-    if (IIC_ERROR == 1)
-        return;
-    IIC_Stop(); //6、结束通信
+    //通道0的DA转换后返回的数字量
+    unsigned int voltage; //把通道0的电压值转换过来的数字量反过来计算电压值
+    voltage = 196 * digital;
+    //电压与数字量成正比关系，所以得到转换公式：5V/255=voltage/digital
+    //则voltage=5*digital/255=0.0196*digital
+    //为了让其显示在4个数码管上，可以放大10000倍来显示，即voltage=196*digital
+    disp[3] = voltage / 10000;       //因为放大了一万倍，所以先得到万位的值
+    disp[2] = (voltage / 1000) % 10; //得到千位的值
+    disp[1] = (voltage / 100) % 10;  //得到百位的值
+    disp[0] = (voltage / 10) % 10;   //得到十位的值，个位不需要了
 }
 
-// 向 PCF8591发送若干字节进行DA转换并输出锯齿波
+//函数功能：在4个LED上显示电压的4位数
+//入口参数：无
+//出口参数：无
+void display()
+{
+    unsigned char i, j, temp;
+    unsigned char code led[] = {0x3f, 0x06, 0x5b, 0x4f, 0x66, 0x6d, 0x7d, 0x07, 0x7f, 0x6f};
+    //定义0～9显示码，共阴极数码管，即让公共端为低电平，数码管即可使用
+    temp = 0x01; //借助一个变量temp来做移位操作，存放状态；0000 0001
+    //因为移位运算符<<是移位后自动补0，而数码管是低电平有效，所以不能直接用1111 1110
+    //如果直接写P2=0x01，则会在后面执行for循环第一句P2=0xff时被覆盖掉，从而无法实现移位循环
+    for (i = 0; i < 4; i++)
+    {
+        P2 = 0xff & 0x0f;  // 与操作进行屏蔽高四位（要屏蔽的相应位设0），即0000 1111=0x3f，让其余6位为高电平。每次必须要熄灭全部的数码管，否则动态数码管无法显示出来。
+        P3 = led[disp[i]]; //传送选择led数码管数组对应的数据到P3口，显示出来。
+        P2 = ~temp;        //对temp取反（由0000 0001变为1111 1110）后赋值给P2，此时只打开第一个数码管P2.0
+        if(i==3)
+            DP = 1;//当第4个数码管显示时，则其小数点引脚DP点亮
+        for (j = 0; j < 100; j++)
+            ;       //软件空循环，延时约1ms
+        temp <<= 1; //将w的变量左移一位，0000 0010。这样第二次循环时，P2=~temp=1111 1101，只打开第二个数码管P2.1
+                    //当for循环结束后，由于主函数有while(1)disp()，所以又重新进入disp()子函数，执行temp=0x01，这样又可以重新循环而temp不会全部变成0.
+    }
+}
+
+//延时函数
+void delay(unsigned int i)
+{
+    while (i--)
+        ;
+}
 //主程序
 void main()
 {
-    unsigned int i;
+    unsigned char digitalData; //定义PCF芯片返回数字量的存放变量
     while (1)
     {
-        DAC_PCF8591(0x40, ADC_PCF8591(0x00)); //把控制字和数字量赋值给DA转换的函数
-        for (i = 0; i < 10000; i++)
-            ;
+        digitalData = ADC_PCF8591(0x00); //对AD转换写入0x00，表示从通道0读取外部电压，并转换为数字量后存入digitalData变量
+        dataProcess(digitalData);        //把数字量写入数据处理函数，得到显示的四位数
+        display();                       //调用数码管显示函数
+        delay(1000);
     }
 }

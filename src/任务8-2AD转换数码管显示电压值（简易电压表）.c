@@ -3,6 +3,7 @@
 #include <intrins.h> //包含nop函数
 sbit SCL = P1 ^ 7;   //I2C时钟引脚
 sbit SDA = P1 ^ 6;   //I2C数据输入输出引脚
+sbit DP = P3 ^ 7;    //定义数码管的DP引脚，即小数点引脚
 bit bdata IIC_ERROR; //I2C应答错误标志位，其中IIC_ERROR为自定义变量名，bdata：定义的变量在20H~2FH的RAM，16byte范围，变量可读写。不写bdata也可以，由系统随机分配内存空间
 //定义全局数组，用于存储4个显示数码管对应的显示值
 unsigned char disp[4] = {0, 0, 0, 0};
@@ -146,21 +147,23 @@ unsigned char ADC_PCF8591(unsigned char controlByte)
     return receiveFromPCF;              //11、返回PCF芯片从外部模拟通道0转换过来的数字量
 }
 
-//数据处理
+//数字量与电压值的数据处理函数:dataProcess
+//分别得到电压值的四位数存入数组disp[]中，以便数码管的显示函数进行引用
 void dataProcess(unsigned char digital)
 {
     //通道0的DA转换后返回的数字量
     unsigned int voltage; //把通道0的电压值转换过来的数字量反过来计算电压值
     voltage = 196 * digital;
-    //转换公式：5V/255=voltage/digital，则voltage=5*digital/255=0.0196*digital
-    //为了让其显示在数码管上，可以放大10000倍来显示，即voltage=196*digital
-    disp[3] = voltage / 10000;
-    disp[2] = (voltage / 1000) % 10;
-    disp[1] = (voltage / 100) % 10;
-    disp[0] = (voltage / 10) % 10;
+    //电压与数字量成正比关系，所以得到转换公式：5V/255=voltage/digital
+    //则voltage=5*digital/255=0.0196*digital
+    //为了让其显示在4个数码管上，可以放大10000倍来显示，即voltage=196*digital
+    disp[3] = voltage / 10000;       //因为放大了一万倍，所以先得到万位的值
+    disp[2] = (voltage / 1000) % 10; //得到千位的值
+    disp[1] = (voltage / 100) % 10;  //得到百位的值
+    disp[0] = (voltage / 10) % 10;   //得到十位的值，个位不需要了
 }
 
-//函数功能：在6个LED上显示buffer中的6个数
+//函数功能：在4个LED上显示电压的4位数
 //入口参数：无
 //出口参数：无
 void display()
@@ -173,9 +176,11 @@ void display()
     //如果直接写P2=0x01，则会在后面执行for循环第一句P2=0xff时被覆盖掉，从而无法实现移位循环
     for (i = 0; i < 4; i++)
     {
-        P2 = 0xff;         //每次必须要熄灭全部的数码管，否则动态数码管无法显示出来。
+        P2 = 0xff & 0x0f;  // 与操作进行屏蔽高四位（要屏蔽的相应位设0），即0000 1111=0x3f，让其余6位为高电平。每次必须要熄灭全部的数码管，否则动态数码管无法显示出来。
         P3 = led[disp[i]]; //传送选择led数码管数组对应的数据到P3口，显示出来。
         P2 = ~temp;        //对temp取反（由0000 0001变为1111 1110）后赋值给P2，此时只打开第一个数码管P2.0
+        if(i==3)
+            DP = 1;//当第4个数码管显示时，则其小数点引脚DP点亮
         for (j = 0; j < 100; j++)
             ;       //软件空循环，延时约1ms
         temp <<= 1; //将w的变量左移一位，0000 0010。这样第二次循环时，P2=~temp=1111 1101，只打开第二个数码管P2.1
@@ -192,12 +197,12 @@ void delay(unsigned int i)
 //主程序
 void main()
 {
-    unsigned char digitalData;
+    unsigned char digitalData; //定义PCF芯片返回数字量的存放变量
     while (1)
     {
-        digitalData = ADC_PCF8591(0x00);
-        dataProcess(digitalData);
-        display();
+        digitalData = ADC_PCF8591(0x00); //对AD转换写入0x00，表示从通道0读取外部电压，并转换为数字量后存入digitalData变量
+        dataProcess(digitalData);        //把数字量写入数据处理函数，得到显示的四位数
+        display();                       //调用数码管显示函数
         delay(1000);
     }
 }
