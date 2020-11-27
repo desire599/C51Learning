@@ -1,4 +1,4 @@
-﻿//任务8-3单片机通过DA转换控制LED-最终的程序
+﻿//任务8-1PCF8591做DA转换-用按钮调光
 #include <reg52.h>
 #include <intrins.h>     //包含nop函数
 sbit SCL = P1 ^ 7;       //I2C时钟引脚

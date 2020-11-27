@@ -1,4 +1,4 @@
-﻿//任务8-3单片机通过DA转换控制LED-最终的程序
+﻿//任务8-3DA转换自动调节LED灯光（锯齿波电压）
 #include <reg52.h>
 #include <intrins.h> //包含nop函数
 sbit SCL = P1 ^ 7;   //I2C时钟引脚

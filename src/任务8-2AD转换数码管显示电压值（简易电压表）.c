@@ -1,4 +1,4 @@
-﻿//任务8-2单片机与PCF芯片做AD和DA转换
+﻿//任务8-2AD转换数码管显示电压值（简易电压表）
 #include <reg52.h>
 #include <intrins.h> //包含nop函数
 sbit SCL = P1 ^ 7;   //I2C时钟引脚
