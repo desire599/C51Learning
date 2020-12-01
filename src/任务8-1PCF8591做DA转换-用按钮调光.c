@@ -27,7 +27,7 @@ void IIC_Start()
     SCL = 0; //复位时钟线为低电平，这样才能允许接下来修改SDA传输的数据，进行读写数据
 }
 
-//5、函数名：iic_stop
+//4、函数名：iic_stop
 //功能：停止I2C总线数据传送，形参：无，返回值：无
 void IIC_Stop()
 {
@@ -57,7 +57,7 @@ void IIC_SendByte(unsigned char sendData)
     Delay4us();
 }
 
-//4、函数名：check_ACK
+//3、函数名：check_ACK
 //函数功能：主机（即单片机）在发完一节数据后要读取的I2C设备反馈的应答信号。形参：无。返回值：无。
 void check_ACK()
 {
@@ -103,19 +103,21 @@ void main()
     unsigned char i = 125; //初始数字量为255的中间值，即125，此时电压为2.5V
     while (1)
     {
-        if (lightUp == 0)//灯光增强
+        DAC_PCF8591(0x40, i); //把控制字（0x40表示打开模拟量输出）和数字量i赋值给DA转换的函数
+        delay(1000);          //效果延时，不加也可以
+        if (lightUp == 0) //灯光增强
         {
-            delay(1000);//按键按下延时消抖
+            delay(1000); //按键按下延时消抖
             if (lightUp == 0)
             {
                 //while(!lightUp);//确保按下再松开才算一次按键按下操作
                 //delay(1000);
                 i = i + 5;
-                if (i == 255)//当数字量增加到8位DA转换芯片的最大分辨率255时
+                if (i == 255) //当数字量增加到8位DA转换芯片的最大分辨率255时
                     i = 125;
             }
         }
-        if (lightDown == 0)//灯光减弱
+        if (lightDown == 0) //灯光减弱
         {
             delay(1000);
             if (lightDown == 0)
@@ -127,7 +129,5 @@ void main()
                     i = 125;
             }
         }
-        DAC_PCF8591(0x40, i); //把控制字（0x40表示打开模拟量输出）和数字量i赋值给DA转换的函数
-        delay(1000);//效果延时，不加也可以
     }
 }
