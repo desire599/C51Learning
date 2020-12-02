@@ -61,10 +61,10 @@ void IIC_SendByte(unsigned char sendData)
 //函数功能：主机（即单片机）在发完一节数据后要读取的I2C设备反馈的应答信号。形参：无。返回值：无。
 void check_ACK()
 {
-    SDA = 1;         //此时I2C设备强制设为读取状态，即单片机读取I2C的应答信号，所以向SDA写入1。而SDA写入0，是写入数据到PCF8591芯片
-    SCL = 1;         //将时钟线置为1，可以稳定SDA的数据，进行数据读取
+    SDA = 1;         //先将数据线SDA=1，表示这个位为应答位，等待接收机PCF芯片自动反馈应答信号
+    SCL = 1;         //将时钟线SCL置为1，开始第9个时钟脉冲周期。
     Delay4us();      //等待读取数据的完成
-    IIC_ERROR = SDA; //把此时读取的SDA信号存入IIC_ERROR变量，如果IIC_ERROR存的值为1，表示出现应答错误，如果是0，则正常应答通信
+    IIC_ERROR = SDA; //把此时从机通过数据线SDA反馈的应答信号存入IIC_ERROR变量，如果IIC_ERROR存的值为1，表示出现应答错误，如果是0，则正常应答通信
     SCL = 0;         //复位时钟线为低电平，这样才能允许接下来修改SDA传输的数据
     Delay4us();
 }
