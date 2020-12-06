@@ -1,5 +1,5 @@
 ".\Objects\STARTUP.obj",
-".\Objects\lcd.obj",
-".\Objects\main.obj" 
+".\Objects\lcdtimermain.obj",
+".\Objects\lcd1602.obj" 
 TO ".\Objects\test" 
 PRINT(".\Listings\test.m51") RAMSIZE(256) 

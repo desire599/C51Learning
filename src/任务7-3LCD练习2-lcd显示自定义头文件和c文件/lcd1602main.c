@@ -1,6 +1,6 @@
 #include <reg51.h>   //包含头文件reg51.h，定义了51单片机的专用寄存器
-#include "lcd.h" //因为lcd在项目文件夹内，用双引号表示先从文件夹搜索。
-//包含lcd.h，从而把lcd.c包含进来
+#include "lcd1602.h" //因为lcd在项目文件夹内，用双引号表示先从文件夹搜索。
+//包含lcd1602.h，从而把lcd1602.c包含进来
 void main()                        //主函数
 {
     unsigned char lcd1[] = "QING YUAN";  //字符数组可以用“”来存入整个字符串，其中字符数组的最后一位为'\0'，由系统自动加上。

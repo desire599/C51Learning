@@ -1,0 +1,142 @@
+C51 COMPILER V9.60.0.0   LCD1602                                                           12/06/2020 09:57:25 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE LCD1602
+OBJECT MODULE PLACED IN .\Objects\lcd1602.obj
+COMPILER INVOKED BY: C:\Program Files (x86)\Keil_v5\C51\BIN\C51.EXE src\lcd��ʱ��-��ʱ����ʱ\lcd1602.c OPTIMIZE(8,SPEED)
+                    - BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\lcd1602.lst) TABS(2) OBJECT(.\Objects\lcd1602.obj)
+
+line level    source
+
+   1          #include <reg51.h>   //包含头文件reg51.h，定义了51单片机的专用寄存器
+   2          #include <intrins.h> //包含头文件intrins.h，代码中引用了_nop_()函数
+   3          #include "lcd1602.h"  //包含lcd.h头文件
+   4          //定义控制信号端口
+   5          sbit RS = P3 ^ 0; //RS是数据和命令选择位，其中0xb0是P3.0在单片机中的位地址，也可�
+             -��成RS=0xb0;
+   6          sbit RW = P3 ^ 1; //RW是写和读选择位
+   7          sbit E = P3 ^ 2;  //E是LCD使能位
+   8          void delay_3us();    //延时函数声明
+   9          void delay(unsigned int i); //延时函数声明
+  10          //4、函数名：lcd_int
+  11          //函数功能：lcd初始化
+  12          //形式参数：无
+  13          //返回值：无
+  14          void lcd_int()
+  15          {
+  16   1          lcd_w_cmd(0x3c);        //设置工作方式，设置8位数据总线，双行显示，5X10的点阵�
+             -�符
+  17   1          lcd_w_cmd(0x0c);        //设置显示状态，显示打开，无光标显示，光标不闪烁
+  18   1          lcd_w_cmd(0x06);        //设置输入方式，字体增量右移
+  19   1          lcd_w_cmd(0x01);        //清屏必须要放在前面的设置之后
+  20   1          lcd_w_cmd(0x00 + 0x80); //设置字符的初始显示位置在第一行第1列
+  21   1      }
+  22          //1、函数名：lcd_r_start
+  23          //函数功能：读状态字
+  24          //形式参数：无
+  25          //返回值：返回状态字，最高位D7=0，LCD控制器空闲；D7=1,LCD控制器忙
+  26          unsigned char lcd_r_start()
+  27          {
+  28   1          unsigned char s;
+  29   1          RW = 1;      //当RW=1，RS=0时，为读取LCD的命令状态
+  30   1          delay_3us(); //由于单片机程序执行速度比LCD的操作速度快，每个语句后面都要延
+             -时几微秒。
+  31   1          RS = 0;
+  32   1          delay_3us();
+  33   1          E = 1; //E端时序=1
+  34   1          delay_3us();
+  35   1          s = P1; //从LCD的数据口P0读状态，存入s
+  36   1          delay_3us();
+  37   1          E = 0; //E端时序=0，产生下降沿时，LCD执行命令
+  38   1          delay_3us();
+  39   1          RW = 0;
+  40   1          delay_3us();
+  41   1          return (s); //返回读取的LCD状态字
+  42   1      }
+  43          //2、函数名：lcd_w_cmd
+  44          //函数功能：写命令字
+  45          //形式参数：命令字已存入com单元中
+  46          //返回值：无
+  47          void lcd_w_cmd(unsigned char com)
+  48          {
+  49   1          unsigned char i;
+  50   1          do
+  51   1          {                      //查LCD忙操作
+C51 COMPILER V9.60.0.0   LCD1602                                                           12/06/2020 09:57:25 PAGE 2   
+
+  52   2              i = lcd_r_start(); //调用读状态字函数的函数，把返回值存入i
+  53   2              i = i & 0x80;      //"与"操作屏蔽掉i的低7位，如果i值的最高位为1，则表示LCD�
+             -�在忙，此时不能做其他操作
+  54   2              delay(2);
+  55   2          } while (i != 0); //如果i值=1，继续查询；如果i值为0，则退出循环
+  56   1          RW = 0;           //如果前面LCD已经空闲，则可以进行写命令的操作。
+  57   1          delay_3us();
+  58   1          RS = 0; //RW=0（写），RS=0（命令），设置写LCD命令字
+  59   1          delay_3us();
+  60   1          E = 1; //E端时序=1
+  61   1          delay_3us();
+  62   1          P1 = com; //将com中的命令字写入LCD数据口
+  63   1          delay_3us();
+  64   1          E = 0; //E端=0，产生下降沿时，LCD执行命令
+  65   1          delay_3us();
+  66   1      }
+  67          //3、函数名：lcd_w_dat
+  68          //函数功能：写数据
+  69          //形式参数：数据已存入dat单元中
+  70          //返回值：无
+  71          void lcd_w_dat(unsigned char dat)
+  72          {
+  73   1          unsigned char i;
+  74   1          do
+  75   1          {                      //查忙操作
+  76   2              i = lcd_r_start(); //调用读状态字函数
+  77   2              i = i & 0x80;      //"与"操作屏蔽掉低7位
+  78   2              delay(2);
+  79   2          } while (i != 0); //LCD忙，继续查询，否则退出循环
+  80   1          RW = 0;
+  81   1          delay_3us();
+  82   1          RS = 1; //RW=0，RS=1，写LCD命令字
+  83   1          delay_3us();
+  84   1          E = 1; //E端时序
+  85   1          delay_3us();
+  86   1          P1 = dat; //将dat中的显示数据写入LCD数据口
+  87   1          delay_3us();
+  88   1          E = 0;
+  89   1          delay_3us();
+  90   1      }
+  91          //函数名：delay_3us
+  92          //函数功能：采用软件实现延时，约3个机器周期
+  93          //形式参数：无
+  94          //返回值：无
+  95          void delay_3us()
+  96          {
+  97   1          _nop_();
+  98   1          _nop_();
+  99   1          _nop_();
+ 100   1      }
+ 101          
+ 102          //函数名：delay
+ 103          //函数功能：实现软件延时
+ 104          //形式参数：无符号整型变量i，控制空循环的循环次数
+ 105          //返回值：无
+ 106          void delay(unsigned int i) //延时函数
+ 107          {
+ 108   1          while (i--)
+ 109   1              ;
+ 110   1      }
+
+
+C51 COMPILER V9.60.0.0   LCD1602                                                           12/06/2020 09:57:25 PAGE 3   
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    168    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       5
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

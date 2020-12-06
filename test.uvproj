@@ -382,14 +382,14 @@
               <FilePath>.\STARTUP.A51</FilePath>
             </File>
             <File>
-              <FileName>lcd.c</FileName>
+              <FileName>lcdtimermain.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\src\lcd.c</FilePath>
+              <FilePath>.\src\lcd计时器-定时器计时\lcdtimermain.c</FilePath>
             </File>
             <File>
-              <FileName>main.c</FileName>
+              <FileName>lcd1602.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\src\main.c</FilePath>
+              <FilePath>.\src\lcd计时器-定时器计时\lcd1602.c</FilePath>
             </File>
           </Files>
         </Group>

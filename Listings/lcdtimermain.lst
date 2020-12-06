@@ -1,0 +1,114 @@
+C51 COMPILER V9.60.0.0   LCDTIMERMAIN                                                      12/06/2020 09:57:25 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE LCDTIMERMAIN
+OBJECT MODULE PLACED IN .\Objects\lcdtimermain.obj
+COMPILER INVOKED BY: C:\Program Files (x86)\Keil_v5\C51\BIN\C51.EXE src\lcd��ʱ��-��ʱ����ʱ\lcdtimermain.c OPTIMIZE(8,S
+                    -PEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\lcdtimermain.lst) TABS(2) OBJECT(.\Objects\lcdtimermain.obj)
+
+line level    source
+
+   1          #include <reg51.h> //包含头文件reg51.h，定义了51单片机的专用寄存器
+   2          #include "lcd1602.h"
+   3          //全局变量定义
+   4          unsigned char count = 0; //全局变量，对50ms定时器T1进行计满溢出次数统计
+   5          unsigned char miao = 0;  //全局变量，可在所有函数中使用，其值为最后一次执行的结�
+             -��，
+   6                                   //是1秒计数统计的变量
+   7          unsigned char fen = 0;   //全局变量，分钟统计的变量
+   8          unsigned char shi = 0;   //全局变量，小时统计的变量
+   9          
+  10          //函数名：timer_1()
+  11          //函数功能：定时器T1中断函数，假设T1在工作方式1下每50ms产生溢出中断
+  12          //形式参数：无
+  13          //返回值：无
+  14          void timer_1() interrupt 3 //50ms定时器T1进入的中断函数，中断序号为3，功能：定时器T
+             -1中断函数
+  15          {
+  16   1        count++;                     //50ms定时器T1每隔50ms进入到这个中断函数，count用于统计�
+             -��入的次数
+  17   1        TH1 = (65536 - 1000) / 256; //重新设置T1计数初值高8位，不然定时器T1不会第二次重新
+             -开始计数
+  18   1        TL1 = (65536 - 1000) % 256; //重新设置T1计数初值低8位
+  19   1        if (count == 20)             //当执行了20次后，则表示1s时间到
+  20   1        {
+  21   2          count = 0; //当统计到20次时，将50ms的计数变量count清0
+  22   2          miao++;    //1秒计数变量miao加1
+  23   2          if (miao == 60)
+  24   2          {
+  25   3            miao = 0;      //当miao计数到60，则从0重新开始计数
+  26   3            fen++;         //分钟fen开始加1
+  27   3            if (fen == 60) //当分钟fen计数到60时，则从0重新开始计数
+  28   3            {
+  29   4              fen = 0;
+  30   4              shi++; //小时shi开始加1
+  31   4              if (shi == 24)
+  32   4                shi = 0; //当时钟shi计数到24时，则从0重新开始计数
+  33   4            }
+  34   3          }
+  35   2        }
+  36   1      }
+  37          
+  38          void main() //主函数
+  39          {
+  40   1        unsigned char time[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ':'}; //此处的数组不能�
+             -��code，否则显示不了
+  41   1        unsigned char title[] = "Clock";
+  42   1        unsigned char i;
+  43   1        P1 = 0xff; //送全1到P1口
+  44   1        lcd_int(); //调用LCD初始化函数
+  45   1        delay(255);
+  46   1        TMOD |= 0x10;                //设置定时器T1，工作方式1
+  47   1        TH1 = (65536 - 1000) / 256; //设置定时器T1为50ms间隔中断，高8位赋初值，以便第一次5
+             -0ms后进入定时器中断函数
+  48   1        TL1 = (65536 - 1000) % 256; //设置定时器T1为50ms间隔中断，低8位赋初值
+C51 COMPILER V9.60.0.0   LCDTIMERMAIN                                                      12/06/2020 09:57:25 PAGE 2   
+
+  49   1        EA = 1;                      //总中断允许位置1（EA总中断关掉，则外部中断、定时器�
+             -��数器都停止）
+  50   1        ET1 = 1;                     //定时器T1允许位置1
+  51   1        TR1 = 1;                     //启动定时器T1，表示单片机一上电就启动定时器T1
+  52   1        lcd_w_cmd(0x06 + 0x80);      //设置标题的显示位置在第一行第6列
+  53   1        delay(255);
+  54   1        for (i = 0; title[i] != '\0'; i++) //显示字符串，当字符串结束符为'\0'时，则跳出for循
+             -环。
+  55   1        {
+  56   2          lcd_w_dat(title[i]);
+  57   2          delay(200);
+  58   2        }
+  59   1        while (1)
+  60   1        {
+  61   2          lcd_w_cmd(0x44 + 0x80); //设置起始显示位置在第2行第4列
+  62   2          delay(255);
+  63   2          lcd_w_dat(time[shi / 10]); //显示小时的十位
+  64   2          delay(200);
+  65   2          lcd_w_dat(time[shi % 10]); //显示小时的十位
+  66   2          delay(200);
+  67   2          lcd_w_dat(time[10]); //显示冒号
+  68   2          delay(200);
+  69   2          lcd_w_dat(time[fen / 10]); //显示分钟的十位
+  70   2          delay(200);
+  71   2          lcd_w_dat(time[fen % 10]); //显示分钟的个位
+  72   2          delay(200);
+  73   2          lcd_w_dat(time[10]); //显示冒号
+  74   2          delay(200);
+  75   2          lcd_w_dat(time[miao / 10]); //显示秒的十位
+  76   2          delay(200);
+  77   2          lcd_w_dat(time[miao % 10]); //显示秒的个位
+  78   2          delay(200);
+  79   2        }
+  80   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    326    ----
+   CONSTANT SIZE    =     17    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      4      18
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

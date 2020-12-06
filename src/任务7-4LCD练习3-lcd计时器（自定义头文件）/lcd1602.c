@@ -1,6 +1,6 @@
-﻿#include <reg51.h>   //包含头文件reg51.h，定义了51单片机的专用寄存器
+#include <reg51.h>   //包含头文件reg51.h，定义了51单片机的专用寄存器
 #include <intrins.h> //包含头文件intrins.h，代码中引用了_nop_()函数
-#include "lcd.h"  //包含lcd.h头文件
+#include "lcd1602.h"  //包含lcd.h头文件
 //定义控制信号端口
 sbit RS = P3 ^ 0; //RS是数据和命令选择位，其中0xb0是P3.0在单片机中的位地址，也可写成RS=0xb0;
 sbit RW = P3 ^ 1; //RW是写和读选择位
