@@ -1,10 +1,10 @@
-C51 COMPILER V9.60.0.0   LCD1602                                                           12/06/2020 09:57:25 PAGE 1   
+C51 COMPILER V9.60.0.0   LCD1602                                                           12/07/2020 22:54:16 PAGE 1   
 
 
 C51 COMPILER V9.60.0.0, COMPILATION OF MODULE LCD1602
 OBJECT MODULE PLACED IN .\Objects\lcd1602.obj
-COMPILER INVOKED BY: C:\Program Files (x86)\Keil_v5\C51\BIN\C51.EXE src\lcd��ʱ��-��ʱ����ʱ\lcd1602.c OPTIMIZE(8,SPEED)
-                    - BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\lcd1602.lst) TABS(2) OBJECT(.\Objects\lcd1602.obj)
+COMPILER INVOKED BY: C:\Program Files (x86)\Keil_v5\C51\BIN\C51.EXE src\lcd1602.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTE
+                    -XTEND PRINT(.\Listings\lcd1602.lst) TABS(2) OBJECT(.\Objects\lcd1602.obj)
 
 line level    source
 
@@ -62,7 +62,7 @@ line level    source
   49   1          unsigned char i;
   50   1          do
   51   1          {                      //查LCD忙操作
-C51 COMPILER V9.60.0.0   LCD1602                                                           12/06/2020 09:57:25 PAGE 2   
+C51 COMPILER V9.60.0.0   LCD1602                                                           12/07/2020 22:54:16 PAGE 2   
 
   52   2              i = lcd_r_start(); //调用读状态字函数的函数，把返回值存入i
   53   2              i = i & 0x80;      //"与"操作屏蔽掉i的低7位，如果i值的最高位为1，则表示LCD�
@@ -126,7 +126,7 @@ line level    source
  110   1      }
 
 
-C51 COMPILER V9.60.0.0   LCD1602                                                           12/06/2020 09:57:25 PAGE 3   
+C51 COMPILER V9.60.0.0   LCD1602                                                           12/07/2020 22:54:16 PAGE 3   
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
    CODE SIZE        =    168    ----
