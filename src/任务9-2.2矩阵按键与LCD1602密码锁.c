@@ -1,26 +1,47 @@
 ﻿//任务9-2矩阵按键-行列反转法
+//功能：设置密码8，开机显示-，密码锁打开；输错显示E，如果输错3次则系统锁定
 #include <reg51.h> //包含头文件reg51.h，定义了51单片机的专用寄存器
 /*------宏定义及全局变量-----*/
 #define keyPort P0 //定义P0口名称，键盘4*4的接口
-#define displayPort P1 //定义P1口名称，数码管的接口
-sbit LOCK = P3 ^ 0; //用LED灯表示密码锁，=0时打开灯亮，=1时锁住灯灭
-unsigned char code keyCodeList[] = {0xee, 0xde, 0xbe, 0x7e, 0xed, 0xdd, 0xbd, 0x7d, 0xeb, 0xdb, 0xbb, 0x7b, 0xe7, 0xd7, 0xb7, 0x77}; //4x4键盘码表
+sbit LOCK = P2 ^ 0; //用LED灯表示密码锁，=0时打开灯亮，=1时锁住灯灭
+unsigned char  keyCodeList[] = {0xee, 0xde, 0xbe, 0x7e, 0xed, 0xdd, 0xbd, 0x7d, 0xeb, 0xdb, 0xbb, 0x7b, 0xe7, 0xd7, 0xb7, 0x77}; //4x4键盘码表
+unsigned char passWord[6] = {1, 2, 3, 4, 5, 6};//定义密码为123456
+unsigned char input[10] = {0};//定义输入密码存放数组，最多10个
+
 /*------函数声明------*/
 void delay(unsigned int i);
-unsigned char key_scan(); //键盘扫描函数声明 
+char key_scan(); //键盘扫描函数声明 
 /*------主函数------*/                                                                                                      //延时函数声明
 void main()                                                                                                                 //主函数
 {
-    unsigned char button; //保存按键信息
-    unsigned char code disp[] = {0xc0, 0xf9, 0xa4, 0xb0, 0x99, 0x92, 0x82, 0xf8, 0xbf};
-    //定义数组led，依次存储包括0～7和"-"的共阳极数码管显示码表
-
-
-
-
-
-
-
+    char button; //保存按键信息，有负值，要用char型
+    unsigned char pressNumber=0;//统计按下次数
+    displayPort = status[0];//数码管初始为“-”
+    LOCK = 1;//密码锁初始关闭
+		keyPort=0xff;
+    while (1)//系统循环监视
+    {
+        button = key_scan();//存储键盘按下的编号
+        if(button==-1)//反馈值为-1，表示无任何按键按下
+            continue;//不执行下面的语句，直接开始下一轮循环
+        else if(button==8)//如果是按键8按下，则密码正确
+        {
+            displayPort = display[button];//数码管先显示按下的键“8”
+            delay(50000);//延时500ms
+            displayPort = status[1];//数码管显示P，表示密码正确
+            LOCK = 0;//密码锁打开
+        }
+        else //密码错误时
+        {
+            displayPort = display[button];//数码管显示按下的键
+            delay(50000);
+            displayPort = status[2];//数码管显示E，表示密码错误
+            LOCK = 1;//密码锁依旧锁住
+            pressNumber++;//因为前面有if-continue判断，所以只有按键按下才能执行到这里
+        } 
+        if(pressNumber==3)//如果密码输错3次，则系统锁定无法使用
+           while(1);//由于仿真时一直自动循环main函数，所以写break无效，改为系统停留在这里
+    }
 }
 
 /*-----延时函数------*/
@@ -30,8 +51,8 @@ void delay(unsigned int i)
         ;
 }
 
-/*-----按键扫描函数，判断哪个按键按下，返回按键编号-----*/
-unsigned char key_scan()
+/*-----按键扫描函数，判断哪个按键按下，返回按键编号，因为有负值所以不能用unsigned char-----*/
+char key_scan()
 {
     char scan1, scan2;       //存储两次扫描的键值变量
     char keyCode, keySelect; //定义键值和返回键选值
@@ -57,6 +78,6 @@ unsigned char key_scan()
                 }
             }
         }
-        return keySelect;//返回按键编号，范围在0~15之间，-1表示没有按键按下
     }
+    return keySelect;//返回按键编号，范围在0~15之间，-1表示没有按键按下
 }
