@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 A51 MACRO ASSEMBLER  STARTUP                                                              12/06/2020 20:09:54 PAGE     1
+=======
+A51 MACRO ASSEMBLER  STARTUP                                                              12/06/2020 20:23:05 PAGE     1
+>>>>>>> 18b6fccfcd46cbe3a33c2573d3c3649a381ff7da
 
 
 MACRO ASSEMBLER A51 V8.2.7.0
@@ -65,7 +69,11 @@ LOC  OBJ            LINE     SOURCE
                       55     ;
                       56     ; <h> Stack Space for reentrant functions in the SMALL model.
                       57     ;  <q> IBPSTACK: Enable SMALL model reentrant stack
+<<<<<<< HEAD
 A51 MACRO ASSEMBLER  STARTUP                                                              12/06/2020 20:09:54 PAGE     2
+=======
+A51 MACRO ASSEMBLER  STARTUP                                                              12/06/2020 20:23:05 PAGE     2
+>>>>>>> 18b6fccfcd46cbe3a33c2573d3c3649a381ff7da
 
                       58     ;     <i> Stack space for reentrant functions in the SMALL model.
   0000                59     IBPSTACK        EQU     0       ; set to 1 if small reentrant is used.
@@ -133,7 +141,11 @@ LOC  OBJ            LINE     SOURCE
                      121     
                      122                     EXTRN CODE (?C_START)
                      123                     PUBLIC  ?C_STARTUP
+<<<<<<< HEAD
 A51 MACRO ASSEMBLER  STARTUP                                                              12/06/2020 20:09:54 PAGE     3
+=======
+A51 MACRO ASSEMBLER  STARTUP                                                              12/06/2020 20:23:05 PAGE     3
+>>>>>>> 18b6fccfcd46cbe3a33c2573d3c3649a381ff7da
 
                      124     
 ----                 125                     CSEG    AT      0
@@ -201,7 +213,11 @@ LOC  OBJ            LINE     SOURCE
                      187     ; This code is required if you use L51_BANK.A51 with Banking Mode 4
                      188     ;<h> Code Banking
                      189     ; <q> Select Bank 0 for L51_BANK.A51 Mode 4
+<<<<<<< HEAD
 A51 MACRO ASSEMBLER  STARTUP                                                              12/06/2020 20:09:54 PAGE     4
+=======
+A51 MACRO ASSEMBLER  STARTUP                                                              12/06/2020 20:23:05 PAGE     4
+>>>>>>> 18b6fccfcd46cbe3a33c2573d3c3649a381ff7da
 
                      190     
                              
@@ -212,7 +228,11 @@ LOC  OBJ            LINE     SOURCE
 0009 020000   F      196                     LJMP    ?C_START
                      197     
                      198                     END
+<<<<<<< HEAD
 A51 MACRO ASSEMBLER  STARTUP                                                              12/06/2020 20:09:54 PAGE     5
+=======
+A51 MACRO ASSEMBLER  STARTUP                                                              12/06/2020 20:23:05 PAGE     5
+>>>>>>> 18b6fccfcd46cbe3a33c2573d3c3649a381ff7da
 
 SYMBOL TABLE LISTING
 ------ ----- -------
