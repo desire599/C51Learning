@@ -15,6 +15,7 @@ char key_scan();       //键盘扫描函数声明
 void main()            //主函数
 {
     unsigned char i, j;                      //定义循环变量i
+    unsigned char correct = 0;               //密码正确与否标志，=1为正确
     char button;                             //保存按键信息，有负值，要用char型
     unsigned char pressNumber = 0;           //统计按下次数
     unsigned char lcdTitle1[] = "password:"; //LCD标题1
@@ -35,25 +36,40 @@ void main()            //主函数
     while (1) //系统循环监视
     {
         button = key_scan(); //存储键盘按下的编号
-        if (button == -1)    //反馈值为-1，表示无任何按键按下
-            continue;        //不执行下面的语句，直接开始下一轮循环
-        else                 //把键盘按下的字母依次显示出来
+        if (button != -1)    //反馈值为-1，表示无任何按键按下
         {
-            input[button] = button;
-            delay(200);
-            lcd_w_dat(button + 0x30);
-            pressNumber++;
-        }
-        for (i = 0; i < 6; i++)
-        {
-            if (input[i] == password[i])
+            if (button >= 0 && button <= 9) //把键盘按下的字母依次显示出来
             {
-                lcd_w_cmd(0x4a + 0x80); //设置显示位置在第2行第10列
+                input[pressNumber] = button; //这里特别要注意，把按键编号存入到按下次数所在的下标的数组，而不能是input[button]。
                 delay(200);
-                for (i = 0; lcdTitle2[i] != '\0'; i++) //显示字符串，当字符串结束符为'\0'时，则跳出for循环。
+                lcd_w_dat(button + 0x30); //数字在LCD中显示要加上0x30才是ASCII字符表对应的数值
+                pressNumber++; //按键次数加1
+            }
+            else if (button == 11) //按键11，即确认键按下，结束密码输入
+            {
+                correct = 1;
+                if (pressNumber != 6) //判断输入次数是否刚好6次，如果不是，则密码错误
+                    correct = 0;
+                else //输入次数正确后再判断密码是否一一对应
                 {
-                    lcd_w_dat(lcdTitle2[i]);
+                    for (i = 0; i < 6; i++)
+                    {
+                        if (input[i] != password[i]) //只要有一个没对应上，密码就错误
+                        {
+                            correct = 0;
+                            break;
+                        }
+                    }
+                }
+                if (correct == 1)
+                {
+                    lcd_w_cmd(0x4a + 0x80); //设置显示位置在第2行第10列
                     delay(200);
+                    for (j = 0; lcdTitle2[j] != '\0'; j++) //显示字符串，当字符串结束符为'\0'时，则跳出for循环。
+                    {
+                        lcd_w_dat(lcdTitle2[j]);
+                        delay(200);
+                    }
                 }
             }
         }

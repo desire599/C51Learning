@@ -40,10 +40,10 @@ void main()            //主函数
         {
             if (button >= 0 && button <= 9) //把键盘按下的字母依次显示出来
             {
-                input[button] = button;
+                input[pressNumber] = button; //这里特别要注意，把按键编号存入到按下次数所在的下标的数组，而不能是input[button]。
                 delay(200);
                 lcd_w_dat(button + 0x30); //数字在LCD中显示要加上0x30才是ASCII字符表对应的数值
-                pressNumber++;
+                pressNumber++; //按键次数加1
             }
             else if (button == 11) //按键11，即确认键按下，结束密码输入
             {

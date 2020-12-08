@@ -1,4 +1,4 @@
-C51 COMPILER V9.60.0.0   MAIN                                                              12/07/2020 22:54:15 PAGE 1   
+C51 COMPILER V9.60.0.0   MAIN                                                              12/08/2020 08:09:55 PAGE 1   
 
 
 C51 COMPILER V9.60.0.0, COMPILATION OF MODULE MAIN
@@ -57,13 +57,14 @@ line level    source
   40   2              {
   41   3                  if (button >= 0 && button <= 9) //把键盘按下的字母依次显示出来
   42   3                  {
-  43   4                      input[button] = button;
+  43   4                      input[pressNumber] = button; //这里特别要注意，把按键编号存入到按下次�
+             -�所在的下标的数组，而不能是input[button]。
   44   4                      delay(200);
   45   4                      lcd_w_dat(button + 0x30); //数字在LCD中显示要加上0x30才是ASCII字符表对应�
              -�数值
-  46   4                      pressNumber++;
-C51 COMPILER V9.60.0.0   MAIN                                                              12/07/2020 22:54:15 PAGE 2   
+C51 COMPILER V9.60.0.0   MAIN                                                              12/08/2020 08:09:55 PAGE 2   
 
+  46   4                      pressNumber++; //按键次数加1
   47   4                  }
   48   3                  else if (button == 11) //按键11，即确认键按下，结束密码输入
   49   3                  {
@@ -125,9 +126,9 @@ line level    source
   99   4                      if (keyCode == keyCodeList[i]) //当找到键盘码表数组的值与此时的按键键码
              -一致时
  100   4                      {
- 101   5                          keySelect = i; //这时候的i值，就是对应的按键编号，就是按下的那�
-C51 COMPILER V9.60.0.0   MAIN                                                              12/07/2020 22:54:15 PAGE 3   
+C51 COMPILER V9.60.0.0   MAIN                                                              12/08/2020 08:09:55 PAGE 3   
 
+ 101   5                          keySelect = i; //这时候的i值，就是对应的按键编号，就是按下的那�
              -�按键
  102   5                          break;
  103   5                      }
@@ -141,7 +142,7 @@ line level    source
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =    381    ----
+   CODE SIZE        =    382    ----
    CONSTANT SIZE    =     21    ----
    XDATA SIZE       =   ----    ----
    PDATA SIZE       =   ----    ----
