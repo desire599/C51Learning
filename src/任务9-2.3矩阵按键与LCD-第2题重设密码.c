@@ -12,6 +12,7 @@ unsigned char input[10] = {0};                                                  
 /*------函数声明------*/
 char key_scan();                            //键盘扫描函数声明
 void char_display(unsigned char display[]); //字符串显示函数声明
+void set_newPassword();                     //设置新密码
 /*------主函数------*/                      //延时函数声明
 void main()                                 //主函数
 {
@@ -19,7 +20,6 @@ void main()                                 //主函数
     unsigned char correct;         //密码正确与否标志，=1为正确,=0为错误
     char button;                   //保存按键信息，有负值，要用char型
     unsigned char pressNumber = 0; //统计按键按下次数
-    unsigned char count = 0;       //统计修改的次数，总共有3次重新输入密码的次数
     LOCK = 1;                      //密码锁初始关闭
     keyPort = 0xff;                //让按键初始为高电平
     /*------LCD初始显示password:------*/
@@ -33,15 +33,33 @@ void main()                                 //主函数
         button = key_scan(); //存储键盘按下的编号
         if (button != -1)    //反馈值为-1，表示无任何按键按下
         {
-            if (button >= 0 && button <= 9) //把键盘按下的字母依次显示出来
+            if (button >= 0 && button <= 13) //把键盘按下的字母依次显示出来
             {
-                input[pressNumber] = button; //这里特别要注意，把按键编号存入到按下次数所在的下标的数组，而不能是input[button]。
                 delay(200);
                 lcd_w_cmd(0x09 + 0x80 + pressNumber); //前面9位是留给“password:”字样的，所以每按一次，位置往后移1位
-                lcd_w_dat(button + 0x30);             //数字在LCD中显示要加上0x30才是ASCII字符表对应的数值
-                pressNumber++;                        //按键次数加1
+                if (button >= 0 && button <= 2)
+                {
+                    lcd_w_dat(button + 0x30 + 1);    //数字在LCD中显示要加上0x30才是ASCII字符表对应的数值
+                    input[pressNumber] = button + 1; //这里特别要注意，把按键编号存入到按下次数所在的下标的数组，而不能是input[button]。
+                }
+                if (button >= 4 && button <= 6)
+                {
+                    lcd_w_dat(button + 0x30);    //数字在LCD中显示要加上0x30才是ASCII字符表对应的数值
+                    input[pressNumber] = button; //这里特别要注意，把按键编号存入到按下次数所在的下标的数组，而不能是input[button]。
+                }
+                if (button >= 8 && button <= 10)
+                {
+                    lcd_w_dat(button + 0x30 - 1);    //数字在LCD中显示要加上0x30才是ASCII字符表对应的数值
+                    input[pressNumber] = button - 1; //这里特别要注意，把按键编号存入到按下次数所在的下标的数组，而不能是input[button]。
+                }
+                if (button == 13) //数字0的显示
+                {
+                    lcd_w_dat(0 + 0x30);    //数字在LCD中显示要加上0x30才是ASCII字符表对应的数值
+                    input[pressNumber] = 0; //这里特别要注意，把按键编号存入到按下次数所在的下标的数组，而不能是input[button]。
+                }
+                pressNumber++; //按键次数加1
             }
-            else if (button == 10) //按键编号10位为“确认键”，按下，结束密码输入进行判断正确与否
+            else if (button == 14) //按键编号14位为“确认键”，按下，结束密码输入进行判断正确与否
             {
                 correct = 1;          //初始密码假设为正确
                 if (pressNumber != 6) //先判断输入次数是否刚好6次，如果不是，则密码错误
@@ -57,13 +75,30 @@ void main()                                 //主函数
                         }
                     }
                 }
-                /*----特别注意：要按了确认键才做密码正确与否的判断----*/
                 if (correct == 1) //再次判断coreect标志是否为1
                 {
                     lcd_w_cmd(0x4a + 0x80); //设置显示位置在第2行第10列
                     delay(200);
                     char_display("pass"); //在第二行显示pass字样
                     LOCK = 0;             //密码锁打开
+                    while (1)
+                    {
+                        button = key_scan();
+                        if (button != -1) //如果没有按键按下，则一直等待在这里
+                            break;
+                    }
+                    keyPort = 0xf0;         //重新对按键进行高低电平，来判断是否有按键按下
+                    while (keyPort != 0xf0) //如果按键松开，keyPort=0xf0，则跳出循环
+                        ;
+                    if (button == 15) //按下的按键刚好是15号键，则设置新密码
+                    {
+                        set_newPassword();         //设置新密码
+                        delay(50000);              //延时500ms，以便观察输入完最后一个密码
+                        lcd_w_cmd(0x01);           //清屏可以重新输入
+                        lcd_w_cmd(0x00 + 0x80);    //光标重新定位到第1行第0列
+                        char_display("password:"); //调用字符串显示函数，屏幕显示password字样
+                        pressNumber = 0;           //复位按键按下的次数统计
+                    }
                 }
                 else //coreect=0则密码错误
                 {
@@ -71,17 +106,14 @@ void main()                                 //主函数
                     delay(200);
                     char_display("error"); //在第二行显示error字样
                     LOCK = 1;              //密码锁关闭
-                    while (count == 2)
-                        ; //因为第一次已经算输入1次了。如果总输入次数为3次，密码仍然是错误时，则系统锁定在这里无法操作
+                    while (key_scan() == -1)
+                        ; //如果没有按键按下，则一直等待在这里
+                    //如果是密码错误，则继续往下执行，重新清屏再次重来
+                    lcd_w_cmd(0x01);           //清屏
+                    lcd_w_cmd(0x00 + 0x80);    //光标重新定位到第1行第0列
+                    char_display("password:"); //调用字符串显示函数，屏幕显示password字样
+                    pressNumber = 0;           //复位按键按下的次数统计
                 }
-            }
-            else if (button == 11 && correct == 0) //按键编号11为修改键，按下表示重新输入密码
-            {
-                lcd_w_cmd(0x01);           //清屏
-                lcd_w_cmd(0x00 + 0x80);    //光标重新定位到第1行第0列
-                char_display("password:"); //调用字符串显示函数，屏幕显示password字样
-                pressNumber = 0;           //复位按键按下的次数统计
-                count++;                   //统计修改密码的次数累加1
             }
         }
     }
@@ -129,5 +161,42 @@ void char_display(unsigned char display[]) //形参为字符串数组
     {
         lcd_w_dat(display[i]); //每次把单个字符串元素写入到LCD
         i++;                   //依次累加
+    }
+}
+
+/*------设置新密码------*/
+void set_newPassword()
+{
+    char key, count = 0;             //key存储按键编号，因为有负数，一定要char型，count存储按键按下次数
+    lcd_w_cmd(0x01);                 //清屏
+    lcd_w_cmd(0x00 + 0x80);          //光标重新定位到第1行第0列
+    char_display("password setup:"); //调用字符串显示函数，屏幕显示password setup:字样
+    lcd_w_cmd(0x40 + 0x80);          //显示位置设在第2行第0列
+    while (1)
+    {
+        key = key_scan(); //读取按键编号
+        if (key != -1) //有按键按下则执行
+        {
+            lcd_w_dat('*'); //按下后就显示*
+            if (key >= 0 && key <= 2) //按键的编号与实际使用不同，所以要进行修改
+            {
+                password[count] = key + 1; //这里特别要注意，把按键编号存入到按下次数所在的下标的数组
+            }
+            if (key >= 4 && key <= 6)
+            {
+                password[count] = key; 
+            }
+            if (key >= 8 && key <= 10)
+            {
+                password[count] = key - 1; 
+            }
+            if (key == 13) //数字0的显示
+            {
+                password[count] = 0; 
+            }
+            count++; //输入密码个数累加1
+            if (count == 6)
+                break; //输入6个密码后，就跳出循环
+        }
     }
 }
