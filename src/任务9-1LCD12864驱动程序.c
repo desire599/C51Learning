@@ -15,7 +15,6 @@ sbit cs2 = P2 ^ 3;  // 片选2
 #define LCD_Y_MAX 64  //   定义液晶y轴的像素数 *
 
 //ASCII 字模宽度及高度
-<<<<<<< HEAD
 #define ASC_CHR_WIDTH 8   //字母数字宽度
 #define ASC_CHR_HEIGHT 16 //字母数字高度
 #define HZ_CHR_WIDTH 16  //汉字高度
@@ -26,18 +25,6 @@ sbit cs2 = P2 ^ 3;  // 片选2
 uchar code GB_16[5][32] ={ //5行，表示5个汉字；每个汉字有32个字码
 
  //单(0) 片(1) 机(2) 技(3) 术(4)
-=======
-#define ASC_CHR_WIDTH 8
-#define ASC_CHR_HEIGHT 16
-#define HZ_CHR_WIDTH 16
-#define HZ_CHR_HEIGHT 16
-
-#define uchar unsigned char
-
-uchar code GB_16[5][32] ={ //5行，表示5个汉字；每个汉字有32个字码
-
-	//单(0) 片(1) 机(2) 技(3) 术(4)，字体为宋体
->>>>>>> 18b6fccfcd46cbe3a33c2573d3c3649a381ff7da
 
 {0x00,0x00,0xF8,0x49,0x4A,0x4C,0x48,0xF8, 
 0x48,0x4C,0x4A,0x49,0xF8,0x00,0x00,0x00, //以上16列为汉字上半部分
@@ -76,15 +63,10 @@ void Check_Busy(void)
     do
     {
         DataPort = 0x00;
-<<<<<<< HEAD
         E = 1;  //使能E端，高电平时操作有效
         dat = DataPort;
         E = 0;  //使能E端，低电平时数据锁定，LCD执行
-=======
-        E = 1;
-        dat = DataPort;
-        E = 0;
->>>>>>> 18b6fccfcd46cbe3a33c2573d3c3649a381ff7da
+
         dat = 0x80 & dat; //仅当第7位为0时才可操作(判别busy信号)
     } while (!(dat == 0x00));
 }
@@ -111,11 +93,7 @@ void Write_Dat(uchar dat)
     E = 0;
 }
 
-<<<<<<< HEAD
 /*------设定行地址(其实是页的概念，8个像素点组成1页)--Y 0-7------*/
-=======
-/*------设定行地址(页)--X 0-7------*/
->>>>>>> 18b6fccfcd46cbe3a33c2573d3c3649a381ff7da
 void Set_Line(uchar line)
 {
     line = line & 0x07; // 0<=line<=7
@@ -123,11 +101,7 @@ void Set_Line(uchar line)
     Writ_Comd(line);
 }
 
-<<<<<<< HEAD
 /*------设定列地址--X 左右半屏各0-63列-----*/
-=======
-/*------设定列地址--Y 左右半屏各0-63列-----*/
->>>>>>> 18b6fccfcd46cbe3a33c2573d3c3649a381ff7da
 void Set_Column(uchar column)
 {
     column = column & 0x3f; // 0=<column<=63
@@ -135,11 +109,7 @@ void Set_Column(uchar column)
     Writ_Comd(column);
 }
 
-<<<<<<< HEAD
 /*-----设定显示开始行-----*/
-=======
-/*-----设定显示开始行--XX-----*/
->>>>>>> 18b6fccfcd46cbe3a33c2573d3c3649a381ff7da
 void Set_StartLine(uchar startline) //0--63
 {
     startline = startline & 0x07;
@@ -207,7 +177,6 @@ void LCD_Init(void)
 // 在指定位置显示字符：x=0-120（字母、数字）/0-112（汉字），y=0-6
 void Out_Char(uchar x, uchar y, uchar i, bit mode) // x为列坐标，y为页坐标，在指定位置显示字符
 	{     //i为汉字数组行数选择，mode=1，正常显示（阴码）；mode=0，反白显示（阳码）
-<<<<<<< HEAD
     unsigned char k;//定义列计数的循环变量
 	  int cData;
     for (k = 0; k < 2 * HZ_CHR_WIDTH; k++) //由于一个汉字采用上下两个部分，每一部分占16列，所以要循环16*2的列次
@@ -222,27 +191,10 @@ void Out_Char(uchar x, uchar y, uchar i, bit mode) // x为列坐标，y为页坐
             {
                 Select_Screen(1); //选择左半屏
                 Set_Column(x + k); //此时的选择列数为x坐标+当前的k值
-=======
-    unsigned char j;//定义列计数的循环变量
-	  int cData;//定义待发送的数据存储变量
-    for (j = 0; j < 2 * HZ_CHR_WIDTH; j++) //由于一个汉字采用上下两个部分，每一部分占16列，所以要循环16*2的列次
-    {        
-        if (mode == 1)
-            cData = GB_16[i][j]; //从GB_16汉字数组中取对应的汉字字码，存入待发送的数据存储变量
-        else
-            cData = ~GB_16[i][j];
-        if (j < HZ_CHR_WIDTH) //汉字上半部，共需要扫描16列
-        {
-            if ((x + j) < 64) //坐标列数x的值加上当前的扫描列数如果小于64列，则只需要打开左半屏
-            {
-                Select_Screen(1); //选择左半屏
-                Set_Column(x + j); //此时的选择列数为x坐标+当前的k值
->>>>>>> 18b6fccfcd46cbe3a33c2573d3c3649a381ff7da
             }
             else
             {
                 Select_Screen(2); //选择右半屏
-<<<<<<< HEAD
                 Set_Column(x + k - 64);
             }
             Set_Line(y);//设置页数，每页8行对应LCD通信数据口的8个引脚状态
@@ -253,27 +205,11 @@ void Out_Char(uchar x, uchar y, uchar i, bit mode) // x为列坐标，y为页坐
             {
                 Select_Screen(1); //选择左半屏
                 Set_Column(x + k - HZ_CHR_WIDTH);
-=======
-								Set_Column(x + j - 64);//减去64列，表示把左半屏已经显示的去除掉
-            }
-            Set_Line(y);//设置页数，每页8行对应LCD通信数据口的8个引脚状态
-        }
-        else //汉字下半部，共需要扫描16列
-        {
-            if ((x + j - HZ_CHR_WIDTH) < 64)
-            {
-                Select_Screen(1); //选择左半屏
-                Set_Column(x + j - HZ_CHR_WIDTH);//下半部分其实在下一页，所以要换行下一页的最左边开始，所以要减去汉字宽度16列
->>>>>>> 18b6fccfcd46cbe3a33c2573d3c3649a381ff7da
             }
             else
             {
                 Select_Screen(2); //选择右半屏
-<<<<<<< HEAD
                 Set_Column((x + k - HZ_CHR_WIDTH) - 64);
-=======
-                Set_Column((x + j - HZ_CHR_WIDTH) - 64);
->>>>>>> 18b6fccfcd46cbe3a33c2573d3c3649a381ff7da
             }
             Set_Line(y + 1); //设置下一页
         }
@@ -283,18 +219,10 @@ void Out_Char(uchar x, uchar y, uchar i, bit mode) // x为列坐标，y为页坐
 void main()
 {
 	unsigned char i,j=16;//i为汉字数组的个数增量,j为初始坐标值，列数
-<<<<<<< HEAD
   LCD_Init(); //LCD初始化
 	for(i=0;i<5;i++)
 	{
 		Out_Char(j,0,i,0);//第j列，第0页，第i个汉字，显示模式为0
 		j=j+16; //每显示完一个汉字，列数增加16，这样汉字往右边依次显示
-=======
-    LCD_Init(); //LCD初始化
-	for(i=0;i<5;i++) //共5个汉字需要连续显示，所以循环5次
-	{
-		Out_Char(j,0,i,0);//j为起始列，0为第0页（要2页才能显示一个汉字），i为汉字选位，0为模式0
-		j=j+16;//每个汉字的位置相隔一个字体的宽度，即16个像素
->>>>>>> 18b6fccfcd46cbe3a33c2573d3c3649a381ff7da
 	}
 }
