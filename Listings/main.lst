@@ -1,4 +1,4 @@
-C51 COMPILER V9.60.0.0   MAIN                                                              12/11/2020 11:37:58 PAGE 1   
+C51 COMPILER V9.60.0.0   MAIN                                                              12/12/2020 09:31:59 PAGE 1   
 
 
 C51 COMPILER V9.60.0.0, COMPILATION OF MODULE MAIN
@@ -12,97 +12,210 @@ line level    source
    2          //功能：设置密码8，开机显示-，密码锁打开；输错显示E，如果输错3次则系统锁�
              -��
    3          #include <reg51.h> //包含头文件reg51.h，定义了51单片机的专用寄存器
-   4          /*------宏定义及全局变量-----*/
-   5          #define keyPort P0                                                                                        
+   4          #include "lcd1602.h"
+   5          /*------宏定义及全局变量-----*/
+   6          #define keyPort P0                                                                                        
              -                      //定义P0口名称，键盘4*4的接口
-   6          #define displayPort P1                                                                                    
-             -                      //定义P1口名称，数码管的接口
-   7          sbit LOCK = P3 ^ 0;                                                                                       
+   7          sbit LOCK = P2 ^ 0;                                                                                       
              -                      //用LED灯表示密码锁，=0时打开灯亮，=1时锁住灯灭
-   8          unsigned char keyCodeList[]={0xd7,0xee,0xde,0xbe,0xed,0xdd,0xbd,0xeb,0xdb,0xbb,0x7e,0x7d,0x7b,0xe7,0xb7,0x
-             -77};//4x4键盘码表
-   9          /*------函数声明------*/
-  10          void delay(unsigned int i);
-  11          char key_scan();       //键盘扫描函数声明
-  12          /*------主函数------*/ //延时函数声明
-  13          void main()            //主函数
-  14          {
-  15   1          char button;                   //保存按键信息，有负值，要用char型
-  16   1          unsigned char display[] = {0xc0, 0xf9, 0xa4, 0xb0, 0x99, 0x92, 0x82, 0xf8, 0x80, 0x90, 0x88, 0x83, 0xc
-             -6, 0xa1, 0x86, 0x8e};
-  17   1          //定义数组led，依次存储包括0～9,A~F的共阳极数码管显示码表
-  18   1          unsigned char status[] = {0xbf, 0x8c, 0x86}; //状态码“-”、“P”、“E”
-  19   1          displayPort = status[0];                     //数码管初始为“-”
-  20   1          LOCK = 1;                                    //密码锁初始关闭
-  21   1          keyPort = 0xff;                              //让按键初始为高电平
-  22   1          while (1)                                    //系统循环监视
-  23   1          {
-  24   2              button = key_scan();  //存储键盘按下的编号
-  25   2              if (button == -1)     //反馈值为-1，表示无任何按键按下
-  26   2                  continue;         //不执行下面的语句，直接开始下一轮循环
-  27   2              else //
-  28   2              {
-  29   3                  displayPort = display[button]; //数码管显示按下的键
-  30   3                  delay(50000);
-  31   3              }
-  32   2          }
-  33   1      }
-  34          
-  35          /*-----延时函数------*/
-  36          void delay(unsigned int i)
-  37          {
-  38   1          while (i--)
-  39   1              ;
-  40   1      }
-  41          
-  42          /*-----按键扫描函数，判断哪个按键按下，返回按键编号，因为有负值所以不能用
-             -unsigned char-----*/
-  43          char key_scan()
-  44          {
-  45   1          char scan1, scan2;       //存储两次扫描的键值变量
-  46   1          char keyCode, keySelect; //定义键值和返回键选值
-  47   1          char i;                  //循环计数变量
-C51 COMPILER V9.60.0.0   MAIN                                                              12/11/2020 11:37:58 PAGE 2   
+   8          unsigned char keyCodeList[] = {0xd7,0xeb,0xdb,0xbb,0xed,0xdd,0xbd,0xee,0xde,0xbe,0xe7,0xb7,0x7e,0x7d,0x7b,
+             -0x77}; //4x4键盘码表
+   9          unsigned char password[6] = {1, 2, 3, 4, 5, 6};                                                           
+             -                      //定义密码为123456
+  10          unsigned char input[10] = {0};                                                                            
+             -                      //定义输入密码存放数组，最多10个
+  11          
+  12          /*------函数声明------*/
+  13          char key_scan();                            //键盘扫描函数声明
+  14          void char_display(unsigned char display[]); //字符串显示函数声明
+  15          void set_newPassword();                     //设置新密码
+  16          /*------主函数------*/                      //延时函数声明
+  17          void main()                                 //主函数
+  18          {
+  19   1          unsigned char i;               //定义循环变量i
+  20   1          unsigned char correct;         //密码正确与否标志，=1为正确,=0为错误
+  21   1          char button;                   //保存按键信息，有负值，要用char型
+  22   1          unsigned char pressNumber = 0; //统计按键按下次数
+  23   1          LOCK = 1;                      //密码锁初始关闭
+  24   1          keyPort = 0xff;                //让按键初始为高电平
+  25   1          /*------LCD初始显示password:------*/
+  26   1          lcd_int(); //调用LCD初始化函数
+  27   1          delay(200);
+  28   1          lcd_w_cmd(0x00 + 0x80); //设置起始显示位置在第一行第0列
+  29   1          delay(200);
+  30   1          char_display("password:"); //调用字符串显示函数，屏幕显示password字样
+  31   1          while (1)                  //系统循环监视
+  32   1          {
+  33   2              button = key_scan(); //存储键盘按下的编号
+  34   2              if (button != -1)    //反馈值为-1，表示无任何按键按下
+  35   2              {
+  36   3                  if (button >= 0 && button <= 9) //把键盘按下的字母依次显示出来
+  37   3                  {
+  38   4                      delay(200);
+  39   4                      lcd_w_cmd(0x09 + 0x80 + pressNumber); //前面9位是留给“password:”字样的，所�
+             -��每按一次，位置往后移1位
+  40   4                      lcd_w_dat(button + 0x30);    //数字在LCD中显示，其值要加上0x30才是ASCII字�
+             -�表对应的数值。或者写lcd_w_dat('button')
+  41   4                      input[pressNumber] = button; //这里特别要注意，把按键编号存入到按下次�
+             -�所在的下标的数组，而不能是input[button]。
+  42   4                      pressNumber++; //按键次数加1
+  43   4                  }
+  44   3                  else if (button == 11) //按键编号11位为“确认键”，按下，结束密码输入进�
+             -��判断正确与否
+C51 COMPILER V9.60.0.0   MAIN                                                              12/12/2020 09:31:59 PAGE 2   
 
-  48   1          keySelect = -1;          //键选值初始为-1，表示没有按键按下
-  49   1          keyPort = 0x0f;          //1、对矩阵键盘所接的8个引脚，其中4行写1，对其他4列写0
-  50   1          scan1 = keyPort;         //2、读取此时的键盘状态
-  51   1          if (scan1 != 0x0f)       //如果键盘不等于前面赋值，则表示有按键按下
-  52   1          {
-  53   2              delay(1000);       //消除按键抖动
-  54   2              scan1 = keyPort;   //再次读取键盘状态，如果第一行的第一个s0按键按下，则sca
+  45   3                  {
+  46   4                      correct = 1;          //初始密码假设为正确
+  47   4                      if (pressNumber != 6) //先判断输入次数是否刚好6次，如果不是，则密码�
+             -�误
+  48   4                          correct = 0;
+  49   4                      else //输入次数正确后，再判断密码是否一一对应
+  50   4                      {
+  51   5                          for (i = 0; i < 6; i++)
+  52   5                          {
+  53   6                              if (input[i] != password[i]) //只要有一个没对应上，密码就错误
+  54   6                              {
+  55   7                                  correct = 0; //判断正确的标志变成0，表示错误
+  56   7                                  break;       //跳出循环
+  57   7                              }
+  58   6                          }
+  59   5                      }
+  60   4                      if (correct == 1) //再次判断coreect标志是否为1
+  61   4                      {
+  62   5                          lcd_w_cmd(0x4a + 0x80); //设置显示位置在第2行第10列
+  63   5                          delay(200);
+  64   5                          char_display("pass"); //在第二行显示pass字样
+  65   5                          LOCK = 0;             //密码锁打开
+  66   5                          while (1)
+  67   5                          {
+  68   6                              button = key_scan();
+  69   6                              if (button != -1) //如果没有按键按下，则一直等待在这里
+  70   6                                  break;
+  71   6                          }
+  72   5                          keyPort = 0xf0;         //重新对按键进行高低电平，来判断是否有按键
+             -按下
+  73   5                          while (keyPort != 0xf0) //如果按键松开，keyPort=0xf0，则跳出循环
+  74   5                              ;
+  75   5                          if (button == 15) //按下的按键刚好是15号键，则设置新密码
+  76   5                          {
+  77   6                              set_newPassword();         //设置新密码
+  78   6                              delay(50000);              //延时500ms，以便观察输入完最后一个密码
+  79   6                              lcd_w_cmd(0x01);           //清屏可以重新输入
+  80   6                              lcd_w_cmd(0x00 + 0x80);    //光标重新定位到第1行第0列
+  81   6                              char_display("password:"); //调用字符串显示函数，屏幕显示password字
+             -样
+  82   6                              pressNumber = 0;           //复位按键按下的次数统计
+  83   6                          }
+  84   5                      }
+  85   4                      else //coreect=0则密码错误
+  86   4                      {
+  87   5                          lcd_w_cmd(0x4a + 0x80); //设置显示位置
+  88   5                          delay(200);
+  89   5                          char_display("error"); //在第二行显示error字样
+  90   5                          LOCK = 1;              //密码锁关闭
+  91   5                          while (key_scan() == -1)
+  92   5                              ; //如果没有按键按下，则一直等待在这里
+  93   5                          //如果是密码错误，则继续往下执行，重新清屏再次重来
+  94   5                          lcd_w_cmd(0x01);           //清屏
+  95   5                          lcd_w_cmd(0x00 + 0x80);    //光标重新定位到第1行第0列
+  96   5                          char_display("password:"); //调用字符串显示函数，屏幕显示password字样
+  97   5                          pressNumber = 0;           //复位按键按下的次数统计
+  98   5                      }
+  99   4                  }
+ 100   3              }
+ 101   2          }
+ 102   1      }
+ 103          
+C51 COMPILER V9.60.0.0   MAIN                                                              12/12/2020 09:31:59 PAGE 3   
+
+ 104          /*-----按键扫描函数，判断哪个按键按下，返回按键编号，因为有负值所以不能用
+             -unsigned char-----*/
+ 105          char key_scan()
+ 106          {
+ 107   1          char scan1, scan2;       //存储两次扫描的键值变量
+ 108   1          char keyCode, keySelect; //定义键值和返回键选值
+ 109   1          char i;                  //循环计数变量
+ 110   1          keySelect = -1;          //键选值初始为-1，表示没有按键按下
+ 111   1          keyPort = 0x0f;          //对矩阵键盘所接的8个引脚，其中4行写1，对其他4列写0
+ 112   1          scan1 = keyPort;         //读取此时的键盘状态
+ 113   1          if (scan1 != 0x0f)       //如果键盘不等于前面赋值，则表示有按键按下
+ 114   1          {
+ 115   2              delay(1000);       //消除按键抖动
+ 116   2              scan1 = keyPort;   //再次读取键盘状态，如果第一行的第一个s0按键按下，则sca
              -n1=00001110
-  55   2              if (scan1 != 0x0f) //再次判断如果键盘状态改变，则表示有按键按下。
-  56   2              {
-  57   3                  keyPort = 0xf0;          //3、对行列进行反转赋值，其中行写0，列写1
-  58   3                  scan2 = keyPort;         //4、由于s0按键按下，连接其的第1列引脚会被拉低为
-             -0，变成scan2=11100000
-  59   3                  keyCode = scan1 | scan2; //5、将两次扫描的值进行或操作，得到键盘值的扫描
-             -码，以便和键码表比选
-  60   3                  for (i = 0; i < 16; i++) //将此时的键码与键盘码表做对比，共16个值
-  61   3                  {
-  62   4                      if (keyCode == keyCodeList[i]) //当找到键盘码表数组的值与此时的按键键码
+ 117   2              if (scan1 != 0x0f) //再次判断如果键盘状态改变，则表示有按键按下。
+ 118   2              {
+ 119   3                  keyPort = 0xf0;          //对行列进行反转赋值，其中行写0，列写1
+ 120   3                  scan2 = keyPort;         //由于s0按键按下，连接其的第1列引脚会被拉低为0，
+             -变成scan2=11100000
+ 121   3                  keyCode = scan1 | scan2; //将两次扫描的值进行或操作，得到键盘值的扫描码�
+             -��以便和键码表比选
+ 122   3                  for (i = 0; i < 16; i++) //将此时的键码与键盘码表做对比，共16个值
+ 123   3                  {
+ 124   4                      if (keyCode == keyCodeList[i]) //当找到键盘码表数组的值与此时的按键键码
              -一致时
-  63   4                      {
-  64   5                          keySelect = i; //这时候的i值，就是对应的按键编号，就是按下的那�
+ 125   4                      {
+ 126   5                          keySelect = i; //这时候的i值，就是对应的按键编号，就是按下的那�
              -�按键
-  65   5                          break;
-  66   5                      }
-  67   4                  }
-  68   3                  while (keyPort != 0xf0)
-  69   3                      ; //判断按键是否松开，这样按键从按下到松开才算完成，避免重复
-  70   3              }
-  71   2          }
-  72   1          return keySelect; //返回按键编号，范围在0~15之间，-1表示没有按键按下
-  73   1      }
+ 127   5                          break;
+ 128   5                      }
+ 129   4                  }
+ 130   3                  while (keyPort != 0xf0)
+ 131   3                      ; //判断按键是否松开，这样按键从按下到松开才算完成，避免重复
+ 132   3              }
+ 133   2          }
+ 134   1          return keySelect; //返回按键编号，范围在0~15之间，-1表示没有按键按下
+ 135   1      }
+ 136          
+ 137          /*------显示字符串文字的LCD1602函数---*/
+ 138          //调用方法：char_display("QING YUAN");
+ 139          void char_display(unsigned char display[]) //形参为字符串数组
+ 140          {
+ 141   1          unsigned char i = 0;       //循环计数变量
+ 142   1          while (display[i] != '\0') //只要没到字符串的最后一个元素就执行，因为字符串数�
+             -��自动在末尾加了\0
+ 143   1          {
+ 144   2              lcd_w_dat(display[i]); //每次把单个字符串元素写入到LCD
+ 145   2              i++;                   //依次累加
+ 146   2          }
+ 147   1      }
+ 148          
+ 149          /*------设置新密码------*/
+ 150          void set_newPassword()
+ 151          {
+ 152   1          char key, count = 0;             //key存储按键编号，因为有负数，一定要char型，count�
+             -��储按键按下次数
+ 153   1          lcd_w_cmd(0x01);                 //清屏
+ 154   1          lcd_w_cmd(0x00 + 0x80);          //光标重新定位到第1行第0列
+ 155   1          char_display("password setup:"); //调用字符串显示函数，屏幕显示password setup:字样
+ 156   1          lcd_w_cmd(0x40 + 0x80);          //显示位置设在第2行第0列
+ 157   1          while (1)
+C51 COMPILER V9.60.0.0   MAIN                                                              12/12/2020 09:31:59 PAGE 4   
+
+ 158   1          {
+ 159   2              key = key_scan(); //读取按键编号
+ 160   2              if (key != -1) //有按键按下则执行
+ 161   2              {
+ 162   3                  lcd_w_dat('*'); //按下后就显示*
+ 163   3                  if (key >= 0 && key <= 9) //如果是数字键0~9按下，则存储密码
+ 164   3                  {
+ 165   4                      password[count] = key; //这里特别要注意，把按键编号存入到按下次数所�
+             -�的下标的数组
+ 166   4                  }
+ 167   3                  count++; //输入密码个数累加1
+ 168   3                  if (count == 6)
+ 169   3                      break; //输入6个密码后，就跳出循环
+ 170   3              }
+ 171   2          }
+ 172   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =    183    ----
-   CONSTANT SIZE    =     19    ----
+   CODE SIZE        =    552    ----
+   CONSTANT SIZE    =     37    ----
    XDATA SIZE       =   ----    ----
    PDATA SIZE       =   ----    ----
-   DATA SIZE        =     16      20
+   DATA SIZE        =     32       9
    IDATA SIZE       =   ----    ----
    BIT SIZE         =   ----    ----
 END OF MODULE INFORMATION.

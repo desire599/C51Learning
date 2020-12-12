@@ -1,4 +1,4 @@
-C51 COMPILER V9.60.0.0   LCD1602                                                           12/08/2020 16:15:17 PAGE 1   
+C51 COMPILER V9.60.0.0   LCD1602                                                           12/12/2020 09:31:59 PAGE 1   
 
 
 C51 COMPILER V9.60.0.0, COMPILATION OF MODULE LCD1602
@@ -62,7 +62,7 @@ line level    source
   49   1          unsigned char i;
   50   1          do
   51   1          {                      //查LCD忙操作
-C51 COMPILER V9.60.0.0   LCD1602                                                           12/08/2020 16:15:17 PAGE 2   
+C51 COMPILER V9.60.0.0   LCD1602                                                           12/12/2020 09:31:59 PAGE 2   
 
   52   2              i = lcd_r_start(); //调用读状态字函数的函数，把返回值存入i
   53   2              i = i & 0x80;      //"与"操作屏蔽掉i的低7位，如果i值的最高位为1，则表示LCD�
@@ -126,7 +126,7 @@ line level    source
  110   1      }
 
 
-C51 COMPILER V9.60.0.0   LCD1602                                                           12/08/2020 16:15:17 PAGE 3   
+C51 COMPILER V9.60.0.0   LCD1602                                                           12/12/2020 09:31:59 PAGE 3   
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
    CODE SIZE        =    168    ----
