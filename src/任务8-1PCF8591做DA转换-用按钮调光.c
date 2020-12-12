@@ -78,7 +78,7 @@ void DAC_PCF8591(unsigned char controlByte, unsigned char writeData)
     check_ACK();               //3、每次发送一个字节就要检查应答位
     if (IIC_ERROR == 1)        //根据应答信号的反馈值判断是否应答失败，如果错误变量为1
         return;                //则返回0，结束整个系统程序
-    IIC_SendByte(controlByte); //4、发送控制字节
+    IIC_SendByte(controlByte); //4、发送控制字节（即设置芯片的功能）
     check_ACK();               //每次发送一个字节就要检查应答位
     if (IIC_ERROR == 1)
         return;

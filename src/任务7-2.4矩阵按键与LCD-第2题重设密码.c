@@ -5,7 +5,7 @@
 /*------宏定义及全局变量-----*/
 #define keyPort P0                                                                                                              //定义P0口名称，键盘4*4的接口
 sbit LOCK = P2 ^ 0;                                                                                                             //用LED灯表示密码锁，=0时打开灯亮，=1时锁住灯灭
-unsigned char keyCodeList[] = {0xee, 0xde, 0xbe, 0x7e, 0xed, 0xdd, 0xbd, 0x7d, 0xeb, 0xdb, 0xbb, 0x7b, 0xe7, 0xd7, 0xb7, 0x77}; //4x4键盘码表
+unsigned char keyCodeList[] = {0xd7,0xeb,0xdb,0xbb,0xed,0xdd,0xbd,0xee,0xde,0xbe,0xe7,0xb7,0x7e,0x7d,0x7b,0x77}; //4x4键盘码表
 unsigned char password[6] = {1, 2, 3, 4, 5, 6};                                                                                 //定义密码为123456
 unsigned char input[10] = {0};                                                                                                  //定义输入密码存放数组，最多10个
 
@@ -33,33 +33,15 @@ void main()                                 //主函数
         button = key_scan(); //存储键盘按下的编号
         if (button != -1)    //反馈值为-1，表示无任何按键按下
         {
-            if (button >= 0 && button <= 13) //把键盘按下的字母依次显示出来
+            if (button >= 0 && button <= 9) //把键盘按下的字母依次显示出来
             {
                 delay(200);
                 lcd_w_cmd(0x09 + 0x80 + pressNumber); //前面9位是留给“password:”字样的，所以每按一次，位置往后移1位
-                if (button >= 0 && button <= 2)
-                {
-                    lcd_w_dat(button + 0x30 + 1);    //数字在LCD中显示要加上0x30才是ASCII字符表对应的数值
-                    input[pressNumber] = button + 1; //这里特别要注意，把按键编号存入到按下次数所在的下标的数组，而不能是input[button]。
-                }
-                if (button >= 4 && button <= 6)
-                {
-                    lcd_w_dat(button + 0x30);    //数字在LCD中显示要加上0x30才是ASCII字符表对应的数值
-                    input[pressNumber] = button; //这里特别要注意，把按键编号存入到按下次数所在的下标的数组，而不能是input[button]。
-                }
-                if (button >= 8 && button <= 10)
-                {
-                    lcd_w_dat(button + 0x30 - 1);    //数字在LCD中显示要加上0x30才是ASCII字符表对应的数值
-                    input[pressNumber] = button - 1; //这里特别要注意，把按键编号存入到按下次数所在的下标的数组，而不能是input[button]。
-                }
-                if (button == 13) //数字0的显示
-                {
-                    lcd_w_dat(0 + 0x30);    //数字在LCD中显示要加上0x30才是ASCII字符表对应的数值
-                    input[pressNumber] = 0; //这里特别要注意，把按键编号存入到按下次数所在的下标的数组，而不能是input[button]。
-                }
+                lcd_w_dat(button + 0x30);    //数字在LCD中显示，其值要加上0x30才是ASCII字符表对应的数值。或者写lcd_w_dat('button')
+                input[pressNumber] = button; //这里特别要注意，把按键编号存入到按下次数所在的下标的数组，而不能是input[button]。
                 pressNumber++; //按键次数加1
             }
-            else if (button == 14) //按键编号14位为“确认键”，按下，结束密码输入进行判断正确与否
+            else if (button == 11) //按键编号11位为“确认键”，按下，结束密码输入进行判断正确与否
             {
                 correct = 1;          //初始密码假设为正确
                 if (pressNumber != 6) //先判断输入次数是否刚好6次，如果不是，则密码错误
@@ -178,21 +160,9 @@ void set_newPassword()
         if (key != -1) //有按键按下则执行
         {
             lcd_w_dat('*'); //按下后就显示*
-            if (key >= 0 && key <= 2) //按键的编号与实际使用不同，所以要进行修改
+            if (key >= 0 && key <= 9) //如果是数字键0~9按下，则存储密码
             {
-                password[count] = key + 1; //这里特别要注意，把按键编号存入到按下次数所在的下标的数组
-            }
-            if (key >= 4 && key <= 6)
-            {
-                password[count] = key; 
-            }
-            if (key >= 8 && key <= 10)
-            {
-                password[count] = key - 1; 
-            }
-            if (key == 13) //数字0的显示
-            {
-                password[count] = 0; 
+                password[count] = key; //这里特别要注意，把按键编号存入到按下次数所在的下标的数组
             }
             count++; //输入密码个数累加1
             if (count == 6)

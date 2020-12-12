@@ -1,0 +1,170 @@
+C51 COMPILER V9.60.0.0   ____8_1PCF8591__DA_______________                                 12/11/2020 10:03:15 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE ____8_1PCF8591__DA_______________
+OBJECT MODULE PLACED IN .\Objects\����8-1PCF8591��DAת��-�ð�ť����.obj
+COMPILER INVOKED BY: C:\Program Files (x86)\Keil_v5\C51\BIN\C51.EXE src\����8-1PCF8591��DAת��-�ð�ť����.c OPTIMIZE(8,S
+                    -PEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\����8-1PCF8591��DAת��-�ð�ť����.lst) TABS(2) OBJECT(.\Objects\����8-1
+                    -PCF8591��DAת��-�ð�ť����.obj)
+
+line level    source
+
+   1          ﻿//任务8-1PCF8591做DA转换-用按钮调光
+*** ERROR C100 IN LINE 1 OF src\����8-1PCF8591��DAת��-�ð�ť����.c: unprintable character 0xEF skipped
+*** ERROR C100 IN LINE 1 OF src\����8-1PCF8591��DAת��-�ð�ť����.c: unprintable character 0xBB skipped
+*** ERROR C100 IN LINE 1 OF src\����8-1PCF8591��DAת��-�ð�ť����.c: unprintable character 0xBF skipped
+   2          #include <reg52.h>
+   3          #include <intrins.h>     //包含nop函数
+   4          sbit SCL = P1 ^ 7;       //I2C时钟引脚
+   5          sbit SDA = P1 ^ 6;       //I2C数据输入输出引脚
+   6          sbit lightUp = P3 ^ 0;   //灯光增加按键P3.0
+   7          sbit lightDown = P3 ^ 1; //灯光调暗按键P3.1
+   8          bit bdata IIC_ERROR;     //I2C应答错误标志位，其中IIC_ERROR为自定义变量名，bdata：定�
+             -�的变量在20H~2FH的RAM，16byte范围，变量可读写。不写bdata也可以，由系统随机分配内存空间
+   9          //延时4微秒函数。每个nop函数执行一个机器周期，所以12MHz的晶振产生1μs的机器�
+             -��期
+  10          void Delay4us()
+  11          {
+  12   1          _nop_();
+  13   1          _nop_();
+  14   1          _nop_();
+  15   1          _nop_();
+  16   1      }
+  17          
+  18          //1、函数名：iic_start
+  19          //功能：启动I2C总线，即发送I2C起始条件，形参：无，返回值：无
+  20          void IIC_Start()
+  21          {
+  22   1          SDA = 1;    //数据线高电平
+  23   1          SCL = 1;    //时钟线高电平
+  24   1          Delay4us(); //起始条件建立时间需要大于4.7μs，所以调用延时函数
+  25   1          SDA = 0;    //在时钟线高电平时，SDA数据线从高电平转为低电平一次跳变，则I2C�
+             -��信开始启动
+  26   1          Delay4us();
+  27   1          SCL = 0; //复位时钟线为低电平，这样才能允许接下来修改SDA传输的数据，进行�
+             -��写数据
+  28   1      }
+  29          
+  30          //4、函数名：iic_stop
+  31          //功能：停止I2C总线数据传送，形参：无，返回值：无
+  32          void IIC_Stop()
+  33          {
+  34   1          SDA = 0;    //数据线低电平
+  35   1          SCL = 1;    //时钟线高电平
+  36   1          Delay4us(); //起始条件建立时间需要大于4.7μs，所以调用延时函数
+  37   1          SDA = 1;    //在时钟线高电平时，SDA数据线从低电平转为高电平一次跳变，则I2C�
+             -��信结束
+  38   1          Delay4us();
+  39   1          SCL = 0; //复位时钟线为低电平，这样才能允许接下来修改SDA传输的数据，进行�
+             -��写数据
+  40   1      }
+  41          
+  42          //2、函数名：IICSendByte
+  43          //函数功能：主机（即单片机）发送一个字节（一个字节由8位二进制组成）给I2C�
+             -��备。形参：要发送的数据。返回值：无。
+C51 COMPILER V9.60.0.0   ____8_1PCF8591__DA_______________                                 12/11/2020 10:03:15 PAGE 2   
+
+  44          void IIC_SendByte(unsigned char sendData)
+  45          {
+  46   1          unsigned char i = 8;    //由于要向SDA上发送一个字节数据，共8位，所以定义循环计
+             -数变量i
+  47   1          for (i = 0; i < 8; i++) //循环移入8位
+  48   1          {
+  49   2              SDA = (bit)(sendData & 0x80); //发送数据8次，此时前面IIC_start时，SCL为低电平，�
+             -�样才可以放入数据到SDA
+  50   2              //因为SDA首先传送的是最高位，所以要屏蔽剩下的低7位，与0x80做“&与运算
+             -”
+  51   2              //（bit）为强制将发送数据与运算之后的结果转换为位（即为1或0），最后�
+             -��其存入SDA数据线
+  52   2              SCL = 1;        //再把SCL设为1，让SDA数据线上的数据稳定，完成数据的发送
+  53   2              Delay4us();     //等待4个机器周期后，确保已经发送完毕
+  54   2              SCL = 0;        //复位SCL为0，这样下一次才能把数据存入SDA数据线中
+  55   2              sendData <<= 1; //移位只需要7次，把要发送的数据左移1位，继续与0x80做与运�
+             -�，这样实现逐个把数据（即8位二进制）分8次完成发送
+  56   2          }
+  57   1          Delay4us();
+  58   1      }
+  59          
+  60          //3、函数名：check_ACK
+  61          //函数功能：主机（即单片机）在发完一节数据后要读取的I2C设备反馈的应答信�
+             -�。形参：无。返回值：无。
+  62          void check_ACK()
+  63          {
+  64   1          SDA = 1;         //先将数据线SDA=1，表示这个位为应答位，等待接收机PCF芯片自动
+             -反馈应答信号
+  65   1          SCL = 1;         //将时钟线SCL置为1，开始第9个时钟脉冲周期。
+  66   1          Delay4us();      //等待读取数据的完成
+  67   1          IIC_ERROR = SDA; //把此时从机通过数据线SDA反馈的应答信号存入IIC_ERROR变量，如�
+             -�IIC_ERROR存的值为1，表示出现应答错误，如果是0，则正常应答通信
+  68   1          SCL = 0;         //复位时钟线为低电平，这样才能允许接下来修改SDA传输的数据
+  69   1          Delay4us();
+  70   1      }
+  71          
+  72          //5、函数名：DAC_PCF8591
+  73          //功能：从单片机发送一个数字量到PCF芯片并DA转换成模拟量输出
+  74          void DAC_PCF8591(unsigned char controlByte, unsigned char writeData)
+  75          {
+  76   1          IIC_Start();               //1、启动通信
+  77   1          IIC_SendByte(0x90);        //2、发送写地址
+  78   1          check_ACK();               //3、每次发送一个字节就要检查应答位
+  79   1          if (IIC_ERROR == 1)        //根据应答信号的反馈值判断是否应答失败，如果错误变�
+             -��为1
+  80   1              return;                //则返回0，结束整个系统程序
+  81   1          IIC_SendByte(controlByte); //4、发送控制字节
+  82   1          check_ACK();               //每次发送一个字节就要检查应答位
+  83   1          if (IIC_ERROR == 1)
+  84   1              return;
+  85   1          IIC_SendByte(writeData); //5、发送数字量
+  86   1          check_ACK();             //每次发送一个字节就要检查应答位
+  87   1          if (IIC_ERROR == 1)
+  88   1              return;
+  89   1          IIC_Stop(); //6、结束通信
+  90   1      }
+  91          
+  92          //延时函数
+  93          //功能：软件空运算实现粗略延时
+  94          void delay(unsigned int i)
+  95          {
+  96   1          while (i--)
+C51 COMPILER V9.60.0.0   ____8_1PCF8591__DA_______________                                 12/11/2020 10:03:15 PAGE 3   
+
+  97   1              ;
+  98   1      }
+  99          
+ 100          //主程序：按下灯光增量键或减小键，灯光变亮或变暗
+ 101          void main()
+ 102          {
+ 103   1          unsigned char i = 125; //初始数字量为255的中间值，即125，此时电压为2.5V
+ 104   1          while (1)
+ 105   1          {
+ 106   2              DAC_PCF8591(0x40, i); //把控制字（0x40表示打开模拟量输出）和数字量i赋值给DA�
+             -��换的函数
+ 107   2              delay(1000);          //效果延时，不加也可以
+ 108   2              if (lightUp == 0) //灯光增强
+ 109   2              {
+ 110   3                  delay(1000); //按键按下延时消抖
+ 111   3                  if (lightUp == 0)
+ 112   3                  {
+ 113   4                      //while(!lightUp);//确保按下再松开才算一次按键按下操作
+ 114   4                      //delay(1000);
+ 115   4                      i = i + 5;
+ 116   4                      if (i == 255) //当数字量增加到8位DA转换芯片的最大分辨率255时
+ 117   4                          i = 125;
+ 118   4                  }
+ 119   3              }
+ 120   2              if (lightDown == 0) //灯光减弱
+ 121   2              {
+ 122   3                  delay(1000);
+ 123   3                  if (lightDown == 0)
+ 124   3                  {
+ 125   4                      //while(!lightDown);
+ 126   4                      //delay(1000);
+ 127   4                      i = i - 5;
+ 128   4                      if (i == 0)
+ 129   4                          i = 125;
+ 130   4                  }
+ 131   3              }
+ 132   2          }
+ 133   1      }
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  3 ERROR(S)
