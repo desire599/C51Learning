@@ -24,3 +24,10 @@ void main()
     }
     
 }
+
+void delay_1ms()
+{
+    unsigned char i=100;
+    while(i--)
+        ;
+}
