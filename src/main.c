@@ -1,172 +1,133 @@
-//任务9-2矩阵按键-行列反转法
-//功能：设置密码8，开机显示-，密码锁打开；输错显示E，如果输错3次则系统锁定
-#include <reg51.h> //包含头文件reg51.h，定义了51单片机的专用寄存器
-#include "lcd1602.h"
-/*------宏定义及全局变量-----*/
-#define keyPort P0                                                                                                              //定义P0口名称，键盘4*4的接口
-sbit LOCK = P2 ^ 0;                                                                                                             //用LED灯表示密码锁，=0时打开灯亮，=1时锁住灯灭
-unsigned char keyCodeList[] = {0xd7,0xeb,0xdb,0xbb,0xed,0xdd,0xbd,0xee,0xde,0xbe,0xe7,0xb7,0x7e,0x7d,0x7b,0x77}; //4x4键盘码表
-unsigned char password[6] = {1, 2, 3, 4, 5, 6};                                                                                 //定义密码为123456
-unsigned char input[10] = {0};                                                                                                  //定义输入密码存放数组，最多10个
-
-/*------函数声明------*/
-char key_scan();                            //键盘扫描函数声明
-void char_display(unsigned char display[]); //字符串显示函数声明
-void set_newPassword();                     //设置新密码
-/*------主函数------*/                      //延时函数声明
-void main()                                 //主函数
+//任务8-1PCF8591做DA转换-用按钮调光
+#include <reg52.h>
+#include <intrins.h>     //包含nop函数
+sbit SCL = P1 ^ 7;       //I2C时钟引脚
+sbit SDA = P1 ^ 6;       //I2C数据输入输出引脚
+sbit lightUp = P3 ^ 0;   //灯光增加按键P3.0
+sbit lightDown = P3 ^ 1; //灯光调暗按键P3.1
+bit bdata IIC_ERROR;     //I2C应答错误标志位，其中IIC_ERROR为自定义变量名，bdata：定义的变量在20H~2FH的RAM，16byte范围，变量可读写。不写bdata也可以，由系统随机分配内存空间
+//延时4微秒函数。每个nop函数执行一个机器周期，所以12MHz的晶振产生1μs的机器周期
+void Delay4us()
 {
-    unsigned char i;               //定义循环变量i
-    unsigned char correct;         //密码正确与否标志，=1为正确,=0为错误
-    char button;                   //保存按键信息，有负值，要用char型
-    unsigned char pressNumber = 0; //统计按键按下次数
-    LOCK = 1;                      //密码锁初始关闭
-    keyPort = 0xff;                //让按键初始为高电平
-    /*------LCD初始显示password:------*/
-    lcd_int(); //调用LCD初始化函数
-    delay(200);
-    lcd_w_cmd(0x00 + 0x80); //设置起始显示位置在第一行第0列
-    delay(200);
-    char_display("password:"); //调用字符串显示函数，屏幕显示password字样
-    while (1)                  //系统循环监视
-    {
-        button = key_scan(); //存储键盘按下的编号
-        if (button != -1)    //反馈值为-1，表示无任何按键按下
-        {
-            if (button >= 0 && button <= 9) //把键盘按下的字母依次显示出来
-            {
-                delay(200);
-                lcd_w_cmd(0x09 + 0x80 + pressNumber); //前面9位是留给“password:”字样的，所以每按一次，位置往后移1位
-                lcd_w_dat(button + 0x30);    //数字在LCD中显示，其值要加上0x30才是ASCII字符表对应的数值。或者写lcd_w_dat('button')
-                input[pressNumber] = button; //这里特别要注意，把按键编号存入到按下次数所在的下标的数组，而不能是input[button]。
-                pressNumber++; //按键次数加1
-            }
-            else if (button == 11) //按键编号11位为“确认键”，按下，结束密码输入进行判断正确与否
-            {
-                correct = 1;          //初始密码假设为正确
-                if (pressNumber != 6) //先判断输入次数是否刚好6次，如果不是，则密码错误
-                    correct = 0;
-                else //输入次数正确后，再判断密码是否一一对应
-                {
-                    for (i = 0; i < 6; i++)
-                    {
-                        if (input[i] != password[i]) //只要有一个没对应上，密码就错误
-                        {
-                            correct = 0; //判断正确的标志变成0，表示错误
-                            break;       //跳出循环
-                        }
-                    }
-                }
-                if (correct == 1) //再次判断coreect标志是否为1
-                {
-                    lcd_w_cmd(0x4a + 0x80); //设置显示位置在第2行第10列
-                    delay(200);
-                    char_display("pass"); //在第二行显示pass字样
-                    LOCK = 0;             //密码锁打开
-                    while (1)
-                    {
-                        button = key_scan();
-                        if (button != -1) //如果没有按键按下，则一直等待在这里
-                            break;
-                    }
-                    keyPort = 0xf0;         //重新对按键进行高低电平，来判断是否有按键按下
-                    while (keyPort != 0xf0) //如果按键松开，keyPort=0xf0，则跳出循环
-                        ;
-                    if (button == 15) //按下的按键刚好是15号键，则设置新密码
-                    {
-                        set_newPassword();         //设置新密码
-                        delay(50000);              //延时500ms，以便观察输入完最后一个密码
-                        lcd_w_cmd(0x01);           //清屏可以重新输入
-                        lcd_w_cmd(0x00 + 0x80);    //光标重新定位到第1行第0列
-                        char_display("password:"); //调用字符串显示函数，屏幕显示password字样
-                        pressNumber = 0;           //复位按键按下的次数统计
-                    }
-                }
-                else //coreect=0则密码错误
-                {
-                    lcd_w_cmd(0x4a + 0x80); //设置显示位置
-                    delay(200);
-                    char_display("error"); //在第二行显示error字样
-                    LOCK = 1;              //密码锁关闭
-                    while (key_scan() == -1)
-                        ; //如果没有按键按下，则一直等待在这里
-                    //如果是密码错误，则继续往下执行，重新清屏再次重来
-                    lcd_w_cmd(0x01);           //清屏
-                    lcd_w_cmd(0x00 + 0x80);    //光标重新定位到第1行第0列
-                    char_display("password:"); //调用字符串显示函数，屏幕显示password字样
-                    pressNumber = 0;           //复位按键按下的次数统计
-                }
-            }
-        }
-    }
+    _nop_();
+    _nop_();
+    _nop_();
+    _nop_();
 }
 
-/*-----按键扫描函数，判断哪个按键按下，返回按键编号，因为有负值所以不能用unsigned char-----*/
-char key_scan()
+//1、函数名：iic_start
+//功能：启动I2C总线，即发送I2C起始条件，形参：无，返回值：无
+void IIC_Start()
 {
-    char scan1, scan2;       //存储两次扫描的键值变量
-    char keyCode, keySelect; //定义键值和返回键选值
-    char i;                  //循环计数变量
-    keySelect = -1;          //键选值初始为-1，表示没有按键按下
-    keyPort = 0x0f;          //对矩阵键盘所接的8个引脚，其中4行写1，对其他4列写0
-    scan1 = keyPort;         //读取此时的键盘状态
-    if (scan1 != 0x0f)       //如果键盘不等于前面赋值，则表示有按键按下
-    {
-        delay(1000);       //消除按键抖动
-        scan1 = keyPort;   //再次读取键盘状态，如果第一行的第一个s0按键按下，则scan1=00001110
-        if (scan1 != 0x0f) //再次判断如果键盘状态改变，则表示有按键按下。
-        {
-            keyPort = 0xf0;          //对行列进行反转赋值，其中行写0，列写1
-            scan2 = keyPort;         //由于s0按键按下，连接其的第1列引脚会被拉低为0，变成scan2=11100000
-            keyCode = scan1 | scan2; //将两次扫描的值进行或操作，得到键盘值的扫描码，以便和键码表比选
-            for (i = 0; i < 16; i++) //将此时的键码与键盘码表做对比，共16个值
-            {
-                if (keyCode == keyCodeList[i]) //当找到键盘码表数组的值与此时的按键键码一致时
-                {
-                    keySelect = i; //这时候的i值，就是对应的按键编号，就是按下的那个按键
-                    break;
-                }
-            }
-            while (keyPort != 0xf0)
-                ; //判断按键是否松开，这样按键从按下到松开才算完成，避免重复
-        }
-    }
-    return keySelect; //返回按键编号，范围在0~15之间，-1表示没有按键按下
+    SDA = 1;    //数据线高电平
+    SCL = 1;    //时钟线高电平
+    Delay4us(); //起始条件建立时间需要大于4.7μs，所以调用延时函数
+    SDA = 0;    //在时钟线高电平时，SDA数据线从高电平转为低电平一次跳变，则I2C通信开始启动
+    Delay4us();
+    SCL = 0; //复位时钟线为低电平，这样才能允许接下来修改SDA传输的数据，进行读写数据
 }
 
-/*------显示字符串文字的LCD1602函数---*/
-//调用方法：char_display("QING YUAN");
-void char_display(unsigned char display[]) //形参为字符串数组
+//4、函数名：iic_stop
+//功能：停止I2C总线数据传送，形参：无，返回值：无
+void IIC_Stop()
 {
-    unsigned char i = 0;       //循环计数变量
-    while (display[i] != '\0') //只要没到字符串的最后一个元素就执行，因为字符串数组自动在末尾加了\0
-    {
-        lcd_w_dat(display[i]); //每次把单个字符串元素写入到LCD
-        i++;                   //依次累加
-    }
+    SDA = 0;    //数据线低电平
+    SCL = 1;    //时钟线高电平
+    Delay4us(); //起始条件建立时间需要大于4.7μs，所以调用延时函数
+    SDA = 1;    //在时钟线高电平时，SDA数据线从低电平转为高电平一次跳变，则I2C通信结束
+    Delay4us();
+    SCL = 0; //复位时钟线为低电平，这样才能允许接下来修改SDA传输的数据，进行读写数据
 }
 
-/*------设置新密码------*/
-void set_newPassword()
+//2、函数名：IICSendByte
+//函数功能：主机（即单片机）发送一个字节（一个字节由8位二进制组成）给I2C设备。形参：要发送的数据。返回值：无。
+void IIC_SendByte(unsigned char sendData)
 {
-    char key, count = 0;             //key存储按键编号，因为有负数，一定要char型，count存储按键按下次数
-    lcd_w_cmd(0x01);                 //清屏
-    lcd_w_cmd(0x00 + 0x80);          //光标重新定位到第1行第0列
-    char_display("password setup:"); //调用字符串显示函数，屏幕显示password setup:字样
-    lcd_w_cmd(0x40 + 0x80);          //显示位置设在第2行第0列
+    unsigned char i = 8;    //由于要向SDA上发送一个字节数据，共8位，所以定义循环计数变量i
+    for (i = 0; i < 8; i++) //循环移入8位
+    {
+        SDA = (bit)(sendData & 0x80); //发送数据8次，此时前面IIC_start时，SCL为低电平，这样才可以放入数据到SDA
+        //因为SDA首先传送的是最高位，所以要屏蔽剩下的低7位，与0x80做“&与运算”
+        //（bit）为强制将发送数据与运算之后的结果转换为位（即为1或0），最后把其存入SDA数据线
+        SCL = 1;        //再把SCL设为1，让SDA数据线上的数据稳定，完成数据的发送
+        Delay4us();     //等待4个机器周期后，确保已经发送完毕
+        SCL = 0;        //复位SCL为0，这样下一次才能把数据存入SDA数据线中
+        sendData <<= 1; //移位只需要7次，把要发送的数据左移1位，继续与0x80做与运算，这样实现逐个把数据（即8位二进制）分8次完成发送
+    }
+    Delay4us();
+}
+
+//3、函数名：check_ACK
+//函数功能：主机（即单片机）在发完一节数据后要读取的I2C设备反馈的应答信号。形参：无。返回值：无。
+void check_ACK()
+{
+    SDA = 1;         //先将数据线SDA=1，表示这个位为应答位，等待接收机PCF芯片自动反馈应答信号
+    SCL = 1;         //将时钟线SCL置为1，开始第9个时钟脉冲周期。
+    Delay4us();      //等待读取数据的完成
+    IIC_ERROR = SDA; //把此时从机通过数据线SDA反馈的应答信号存入IIC_ERROR变量，如果IIC_ERROR存的值为1，表示出现应答错误，如果是0，则正常应答通信
+    SCL = 0;         //复位时钟线为低电平，这样才能允许接下来修改SDA传输的数据
+    Delay4us();
+}
+
+//5、函数名：DAC_PCF8591
+//功能：从单片机发送一个数字量到PCF芯片并DA转换成模拟量输出
+void DAC_PCF8591(unsigned char controlByte, unsigned char writeData)
+{
+    IIC_Start();               //1、启动通信
+    IIC_SendByte(0x90);        //2、发送写地址
+    check_ACK();               //3、每次发送一个字节就要检查应答位
+    if (IIC_ERROR == 1)        //根据应答信号的反馈值判断是否应答失败，如果错误变量为1
+        return;                //则返回0，结束整个系统程序
+    IIC_SendByte(controlByte); //4、发送控制字节（即设置芯片的功能）
+    check_ACK();               //每次发送一个字节就要检查应答位
+    if (IIC_ERROR == 1)
+        return;
+    IIC_SendByte(writeData); //5、发送数字量
+    check_ACK();             //每次发送一个字节就要检查应答位
+    if (IIC_ERROR == 1)
+        return;
+    IIC_Stop(); //6、结束通信
+}
+
+//延时函数
+//功能：软件空运算实现粗略延时
+void delay(unsigned int i)
+{
+    while (i--)
+        ;
+}
+
+//主程序：按下灯光增量键或减小键，灯光变亮或变暗
+void main()
+{
+    unsigned char i = 125; //初始数字量为255的中间值，即125，此时电压为2.5V
     while (1)
     {
-        key = key_scan(); //读取按键编号
-        if (key != -1) //有按键按下则执行
+        DAC_PCF8591(0x40, i); //把控制字（0x40表示打开模拟量输出）和数字量i赋值给DA转换的函数
+        delay(1000);          //效果延时，不加也可以
+        if (lightUp == 0) //灯光增强
         {
-            lcd_w_dat('*'); //按下后就显示*
-            if (key >= 0 && key <= 9) //如果是数字键0~9按下，则存储密码
+            delay(1000); //按键按下延时消抖
+            if (lightUp == 0)
             {
-                password[count] = key; //这里特别要注意，把按键编号存入到按下次数所在的下标的数组
+                while(!lightUp);//确保按下再松开才算一次按键按下操作
+                delay(1000);
+                i = i + 5;
+                if (i == 255) //当数字量增加到8位DA转换芯片的最大分辨率255时
+                    i = 125;
             }
-            count++; //输入密码个数累加1
-            if (count == 6)
-                break; //输入6个密码后，就跳出循环
+        }
+        if (lightDown == 0) //灯光减弱
+        {
+            delay(1000);
+            if (lightDown == 0)
+            {
+                while(!lightDown);
+                delay(1000);
+                i = i - 5;
+                if (i == 0)
+                    i = 125;
+            }
         }
     }
 }

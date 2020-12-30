@@ -6,7 +6,7 @@ void delay_0.01ms(unsigned int i)
 }
 */
 
-/*第二中写法，调用delay_1ms(1000)相当于延时1000ms，即1秒*/
+/*第二写法，调用delay_1ms(1000)相当于延时1000ms，即1秒*/
 void delay_1ms(unsigned int time_ms)
 {
     unsigned char i, j;

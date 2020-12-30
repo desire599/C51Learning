@@ -1,4 +1,4 @@
-C51 COMPILER V9.60.0.0   MAIN                                                              12/12/2020 09:31:59 PAGE 1   
+C51 COMPILER V9.60.0.0   MAIN                                                              12/23/2020 19:28:27 PAGE 1   
 
 
 C51 COMPILER V9.60.0.0, COMPILATION OF MODULE MAIN
@@ -8,216 +8,170 @@ COMPILER INVOKED BY: C:\Program Files (x86)\Keil_v5\C51\BIN\C51.EXE src\main.c O
 
 line level    source
 
-   1          //任务9-2矩阵按键-行列反转法
-   2          //功能：设置密码8，开机显示-，密码锁打开；输错显示E，如果输错3次则系统锁�
-             -��
-   3          #include <reg51.h> //包含头文件reg51.h，定义了51单片机的专用寄存器
-   4          #include "lcd1602.h"
-   5          /*------宏定义及全局变量-----*/
-   6          #define keyPort P0                                                                                        
-             -                      //定义P0口名称，键盘4*4的接口
-   7          sbit LOCK = P2 ^ 0;                                                                                       
-             -                      //用LED灯表示密码锁，=0时打开灯亮，=1时锁住灯灭
-   8          unsigned char keyCodeList[] = {0xd7,0xeb,0xdb,0xbb,0xed,0xdd,0xbd,0xee,0xde,0xbe,0xe7,0xb7,0x7e,0x7d,0x7b,
-             -0x77}; //4x4键盘码表
-   9          unsigned char password[6] = {1, 2, 3, 4, 5, 6};                                                           
-             -                      //定义密码为123456
-  10          unsigned char input[10] = {0};                                                                            
-             -                      //定义输入密码存放数组，最多10个
-  11          
-  12          /*------函数声明------*/
-  13          char key_scan();                            //键盘扫描函数声明
-  14          void char_display(unsigned char display[]); //字符串显示函数声明
-  15          void set_newPassword();                     //设置新密码
-  16          /*------主函数------*/                      //延时函数声明
-  17          void main()                                 //主函数
-  18          {
-  19   1          unsigned char i;               //定义循环变量i
-  20   1          unsigned char correct;         //密码正确与否标志，=1为正确,=0为错误
-  21   1          char button;                   //保存按键信息，有负值，要用char型
-  22   1          unsigned char pressNumber = 0; //统计按键按下次数
-  23   1          LOCK = 1;                      //密码锁初始关闭
-  24   1          keyPort = 0xff;                //让按键初始为高电平
-  25   1          /*------LCD初始显示password:------*/
-  26   1          lcd_int(); //调用LCD初始化函数
-  27   1          delay(200);
-  28   1          lcd_w_cmd(0x00 + 0x80); //设置起始显示位置在第一行第0列
-  29   1          delay(200);
-  30   1          char_display("password:"); //调用字符串显示函数，屏幕显示password字样
-  31   1          while (1)                  //系统循环监视
-  32   1          {
-  33   2              button = key_scan(); //存储键盘按下的编号
-  34   2              if (button != -1)    //反馈值为-1，表示无任何按键按下
-  35   2              {
-  36   3                  if (button >= 0 && button <= 9) //把键盘按下的字母依次显示出来
-  37   3                  {
-  38   4                      delay(200);
-  39   4                      lcd_w_cmd(0x09 + 0x80 + pressNumber); //前面9位是留给“password:”字样的，所�
-             -��每按一次，位置往后移1位
-  40   4                      lcd_w_dat(button + 0x30);    //数字在LCD中显示，其值要加上0x30才是ASCII字�
-             -�表对应的数值。或者写lcd_w_dat('button')
-  41   4                      input[pressNumber] = button; //这里特别要注意，把按键编号存入到按下次�
-             -�所在的下标的数组，而不能是input[button]。
-  42   4                      pressNumber++; //按键次数加1
-  43   4                  }
-  44   3                  else if (button == 11) //按键编号11位为“确认键”，按下，结束密码输入进�
-             -��判断正确与否
-C51 COMPILER V9.60.0.0   MAIN                                                              12/12/2020 09:31:59 PAGE 2   
+   1          //任务8-1PCF8591做DA转换-用按钮调光
+   2          #include <reg52.h>
+   3          #include <intrins.h>     //包含nop函数
+   4          sbit SCL = P1 ^ 7;       //I2C时钟引脚
+   5          sbit SDA = P1 ^ 6;       //I2C数据输入输出引脚
+   6          sbit lightUp = P3 ^ 0;   //灯光增加按键P3.0
+   7          sbit lightDown = P3 ^ 1; //灯光调暗按键P3.1
+   8          bit bdata IIC_ERROR;     //I2C应答错误标志位，其中IIC_ERROR为自定义变量名，bdata：定�
+             -�的变量在20H~2FH的RAM，16byte范围，变量可读写。不写bdata也可以，由系统随机分配内存空间
+   9          //延时4微秒函数。每个nop函数执行一个机器周期，所以12MHz的晶振产生1μs的机器�
+             -��期
+  10          void Delay4us()
+  11          {
+  12   1          _nop_();
+  13   1          _nop_();
+  14   1          _nop_();
+  15   1          _nop_();
+  16   1      }
+  17          
+  18          //1、函数名：iic_start
+  19          //功能：启动I2C总线，即发送I2C起始条件，形参：无，返回值：无
+  20          void IIC_Start()
+  21          {
+  22   1          SDA = 1;    //数据线高电平
+  23   1          SCL = 1;    //时钟线高电平
+  24   1          Delay4us(); //起始条件建立时间需要大于4.7μs，所以调用延时函数
+  25   1          SDA = 0;    //在时钟线高电平时，SDA数据线从高电平转为低电平一次跳变，则I2C�
+             -��信开始启动
+  26   1          Delay4us();
+  27   1          SCL = 0; //复位时钟线为低电平，这样才能允许接下来修改SDA传输的数据，进行�
+             -��写数据
+  28   1      }
+  29          
+  30          //4、函数名：iic_stop
+  31          //功能：停止I2C总线数据传送，形参：无，返回值：无
+  32          void IIC_Stop()
+  33          {
+  34   1          SDA = 0;    //数据线低电平
+  35   1          SCL = 1;    //时钟线高电平
+  36   1          Delay4us(); //起始条件建立时间需要大于4.7μs，所以调用延时函数
+  37   1          SDA = 1;    //在时钟线高电平时，SDA数据线从低电平转为高电平一次跳变，则I2C�
+             -��信结束
+  38   1          Delay4us();
+  39   1          SCL = 0; //复位时钟线为低电平，这样才能允许接下来修改SDA传输的数据，进行�
+             -��写数据
+  40   1      }
+  41          
+  42          //2、函数名：IICSendByte
+  43          //函数功能：主机（即单片机）发送一个字节（一个字节由8位二进制组成）给I2C�
+             -��备。形参：要发送的数据。返回值：无。
+  44          void IIC_SendByte(unsigned char sendData)
+  45          {
+  46   1          unsigned char i = 8;    //由于要向SDA上发送一个字节数据，共8位，所以定义循环计
+             -数变量i
+C51 COMPILER V9.60.0.0   MAIN                                                              12/23/2020 19:28:27 PAGE 2   
 
-  45   3                  {
-  46   4                      correct = 1;          //初始密码假设为正确
-  47   4                      if (pressNumber != 6) //先判断输入次数是否刚好6次，如果不是，则密码�
-             -�误
-  48   4                          correct = 0;
-  49   4                      else //输入次数正确后，再判断密码是否一一对应
-  50   4                      {
-  51   5                          for (i = 0; i < 6; i++)
-  52   5                          {
-  53   6                              if (input[i] != password[i]) //只要有一个没对应上，密码就错误
-  54   6                              {
-  55   7                                  correct = 0; //判断正确的标志变成0，表示错误
-  56   7                                  break;       //跳出循环
-  57   7                              }
-  58   6                          }
-  59   5                      }
-  60   4                      if (correct == 1) //再次判断coreect标志是否为1
-  61   4                      {
-  62   5                          lcd_w_cmd(0x4a + 0x80); //设置显示位置在第2行第10列
-  63   5                          delay(200);
-  64   5                          char_display("pass"); //在第二行显示pass字样
-  65   5                          LOCK = 0;             //密码锁打开
-  66   5                          while (1)
-  67   5                          {
-  68   6                              button = key_scan();
-  69   6                              if (button != -1) //如果没有按键按下，则一直等待在这里
-  70   6                                  break;
-  71   6                          }
-  72   5                          keyPort = 0xf0;         //重新对按键进行高低电平，来判断是否有按键
-             -按下
-  73   5                          while (keyPort != 0xf0) //如果按键松开，keyPort=0xf0，则跳出循环
-  74   5                              ;
-  75   5                          if (button == 15) //按下的按键刚好是15号键，则设置新密码
-  76   5                          {
-  77   6                              set_newPassword();         //设置新密码
-  78   6                              delay(50000);              //延时500ms，以便观察输入完最后一个密码
-  79   6                              lcd_w_cmd(0x01);           //清屏可以重新输入
-  80   6                              lcd_w_cmd(0x00 + 0x80);    //光标重新定位到第1行第0列
-  81   6                              char_display("password:"); //调用字符串显示函数，屏幕显示password字
-             -样
-  82   6                              pressNumber = 0;           //复位按键按下的次数统计
-  83   6                          }
-  84   5                      }
-  85   4                      else //coreect=0则密码错误
-  86   4                      {
-  87   5                          lcd_w_cmd(0x4a + 0x80); //设置显示位置
-  88   5                          delay(200);
-  89   5                          char_display("error"); //在第二行显示error字样
-  90   5                          LOCK = 1;              //密码锁关闭
-  91   5                          while (key_scan() == -1)
-  92   5                              ; //如果没有按键按下，则一直等待在这里
-  93   5                          //如果是密码错误，则继续往下执行，重新清屏再次重来
-  94   5                          lcd_w_cmd(0x01);           //清屏
-  95   5                          lcd_w_cmd(0x00 + 0x80);    //光标重新定位到第1行第0列
-  96   5                          char_display("password:"); //调用字符串显示函数，屏幕显示password字样
-  97   5                          pressNumber = 0;           //复位按键按下的次数统计
-  98   5                      }
-  99   4                  }
- 100   3              }
- 101   2          }
- 102   1      }
- 103          
-C51 COMPILER V9.60.0.0   MAIN                                                              12/12/2020 09:31:59 PAGE 3   
+  47   1          for (i = 0; i < 8; i++) //循环移入8位
+  48   1          {
+  49   2              SDA = (bit)(sendData & 0x80); //发送数据8次，此时前面IIC_start时，SCL为低电平，�
+             -�样才可以放入数据到SDA
+  50   2              //因为SDA首先传送的是最高位，所以要屏蔽剩下的低7位，与0x80做“&与运算
+             -”
+  51   2              //（bit）为强制将发送数据与运算之后的结果转换为位（即为1或0），最后�
+             -��其存入SDA数据线
+  52   2              SCL = 1;        //再把SCL设为1，让SDA数据线上的数据稳定，完成数据的发送
+  53   2              Delay4us();     //等待4个机器周期后，确保已经发送完毕
+  54   2              SCL = 0;        //复位SCL为0，这样下一次才能把数据存入SDA数据线中
+  55   2              sendData <<= 1; //移位只需要7次，把要发送的数据左移1位，继续与0x80做与运�
+             -�，这样实现逐个把数据（即8位二进制）分8次完成发送
+  56   2          }
+  57   1          Delay4us();
+  58   1      }
+  59          
+  60          //3、函数名：check_ACK
+  61          //函数功能：主机（即单片机）在发完一节数据后要读取的I2C设备反馈的应答信�
+             -�。形参：无。返回值：无。
+  62          void check_ACK()
+  63          {
+  64   1          SDA = 1;         //先将数据线SDA=1，表示这个位为应答位，等待接收机PCF芯片自动
+             -反馈应答信号
+  65   1          SCL = 1;         //将时钟线SCL置为1，开始第9个时钟脉冲周期。
+  66   1          Delay4us();      //等待读取数据的完成
+  67   1          IIC_ERROR = SDA; //把此时从机通过数据线SDA反馈的应答信号存入IIC_ERROR变量，如�
+             -�IIC_ERROR存的值为1，表示出现应答错误，如果是0，则正常应答通信
+  68   1          SCL = 0;         //复位时钟线为低电平，这样才能允许接下来修改SDA传输的数据
+  69   1          Delay4us();
+  70   1      }
+  71          
+  72          //5、函数名：DAC_PCF8591
+  73          //功能：从单片机发送一个数字量到PCF芯片并DA转换成模拟量输出
+  74          void DAC_PCF8591(unsigned char controlByte, unsigned char writeData)
+  75          {
+  76   1          IIC_Start();               //1、启动通信
+  77   1          IIC_SendByte(0x90);        //2、发送写地址
+  78   1          check_ACK();               //3、每次发送一个字节就要检查应答位
+  79   1          if (IIC_ERROR == 1)        //根据应答信号的反馈值判断是否应答失败，如果错误变�
+             -��为1
+  80   1              return;                //则返回0，结束整个系统程序
+  81   1          IIC_SendByte(controlByte); //4、发送控制字节（即设置芯片的功能）
+  82   1          check_ACK();               //每次发送一个字节就要检查应答位
+  83   1          if (IIC_ERROR == 1)
+  84   1              return;
+  85   1          IIC_SendByte(writeData); //5、发送数字量
+  86   1          check_ACK();             //每次发送一个字节就要检查应答位
+  87   1          if (IIC_ERROR == 1)
+  88   1              return;
+  89   1          IIC_Stop(); //6、结束通信
+  90   1      }
+  91          
+  92          //延时函数
+  93          //功能：软件空运算实现粗略延时
+  94          void delay(unsigned int i)
+  95          {
+  96   1          while (i--)
+  97   1              ;
+  98   1      }
+  99          
+ 100          //主程序：按下灯光增量键或减小键，灯光变亮或变暗
+C51 COMPILER V9.60.0.0   MAIN                                                              12/23/2020 19:28:27 PAGE 3   
 
- 104          /*-----按键扫描函数，判断哪个按键按下，返回按键编号，因为有负值所以不能用
-             -unsigned char-----*/
- 105          char key_scan()
- 106          {
- 107   1          char scan1, scan2;       //存储两次扫描的键值变量
- 108   1          char keyCode, keySelect; //定义键值和返回键选值
- 109   1          char i;                  //循环计数变量
- 110   1          keySelect = -1;          //键选值初始为-1，表示没有按键按下
- 111   1          keyPort = 0x0f;          //对矩阵键盘所接的8个引脚，其中4行写1，对其他4列写0
- 112   1          scan1 = keyPort;         //读取此时的键盘状态
- 113   1          if (scan1 != 0x0f)       //如果键盘不等于前面赋值，则表示有按键按下
- 114   1          {
- 115   2              delay(1000);       //消除按键抖动
- 116   2              scan1 = keyPort;   //再次读取键盘状态，如果第一行的第一个s0按键按下，则sca
-             -n1=00001110
- 117   2              if (scan1 != 0x0f) //再次判断如果键盘状态改变，则表示有按键按下。
- 118   2              {
- 119   3                  keyPort = 0xf0;          //对行列进行反转赋值，其中行写0，列写1
- 120   3                  scan2 = keyPort;         //由于s0按键按下，连接其的第1列引脚会被拉低为0，
-             -变成scan2=11100000
- 121   3                  keyCode = scan1 | scan2; //将两次扫描的值进行或操作，得到键盘值的扫描码�
-             -��以便和键码表比选
- 122   3                  for (i = 0; i < 16; i++) //将此时的键码与键盘码表做对比，共16个值
- 123   3                  {
- 124   4                      if (keyCode == keyCodeList[i]) //当找到键盘码表数组的值与此时的按键键码
-             -一致时
- 125   4                      {
- 126   5                          keySelect = i; //这时候的i值，就是对应的按键编号，就是按下的那�
-             -�按键
- 127   5                          break;
- 128   5                      }
- 129   4                  }
- 130   3                  while (keyPort != 0xf0)
- 131   3                      ; //判断按键是否松开，这样按键从按下到松开才算完成，避免重复
- 132   3              }
- 133   2          }
- 134   1          return keySelect; //返回按键编号，范围在0~15之间，-1表示没有按键按下
- 135   1      }
- 136          
- 137          /*------显示字符串文字的LCD1602函数---*/
- 138          //调用方法：char_display("QING YUAN");
- 139          void char_display(unsigned char display[]) //形参为字符串数组
- 140          {
- 141   1          unsigned char i = 0;       //循环计数变量
- 142   1          while (display[i] != '\0') //只要没到字符串的最后一个元素就执行，因为字符串数�
-             -��自动在末尾加了\0
- 143   1          {
- 144   2              lcd_w_dat(display[i]); //每次把单个字符串元素写入到LCD
- 145   2              i++;                   //依次累加
- 146   2          }
- 147   1      }
- 148          
- 149          /*------设置新密码------*/
- 150          void set_newPassword()
- 151          {
- 152   1          char key, count = 0;             //key存储按键编号，因为有负数，一定要char型，count�
-             -��储按键按下次数
- 153   1          lcd_w_cmd(0x01);                 //清屏
- 154   1          lcd_w_cmd(0x00 + 0x80);          //光标重新定位到第1行第0列
- 155   1          char_display("password setup:"); //调用字符串显示函数，屏幕显示password setup:字样
- 156   1          lcd_w_cmd(0x40 + 0x80);          //显示位置设在第2行第0列
- 157   1          while (1)
-C51 COMPILER V9.60.0.0   MAIN                                                              12/12/2020 09:31:59 PAGE 4   
-
- 158   1          {
- 159   2              key = key_scan(); //读取按键编号
- 160   2              if (key != -1) //有按键按下则执行
- 161   2              {
- 162   3                  lcd_w_dat('*'); //按下后就显示*
- 163   3                  if (key >= 0 && key <= 9) //如果是数字键0~9按下，则存储密码
- 164   3                  {
- 165   4                      password[count] = key; //这里特别要注意，把按键编号存入到按下次数所�
-             -�的下标的数组
- 166   4                  }
- 167   3                  count++; //输入密码个数累加1
- 168   3                  if (count == 6)
- 169   3                      break; //输入6个密码后，就跳出循环
- 170   3              }
- 171   2          }
- 172   1      }
+ 101          void main()
+ 102          {
+ 103   1          unsigned char i = 125; //初始数字量为255的中间值，即125，此时电压为2.5V
+ 104   1          while (1)
+ 105   1          {
+ 106   2              DAC_PCF8591(0x40, i); //把控制字（0x40表示打开模拟量输出）和数字量i赋值给DA�
+             -��换的函数
+ 107   2              delay(1000);          //效果延时，不加也可以
+ 108   2              if (lightUp == 0) //灯光增强
+ 109   2              {
+ 110   3                  delay(1000); //按键按下延时消抖
+ 111   3                  if (lightUp == 0)
+ 112   3                  {
+ 113   4                      while(!lightUp);//确保按下再松开才算一次按键按下操作
+ 114   4                      delay(1000);
+ 115   4                      i = i + 5;
+ 116   4                      if (i == 255) //当数字量增加到8位DA转换芯片的最大分辨率255时
+ 117   4                          i = 125;
+ 118   4                  }
+ 119   3              }
+ 120   2              if (lightDown == 0) //灯光减弱
+ 121   2              {
+ 122   3                  delay(1000);
+ 123   3                  if (lightDown == 0)
+ 124   3                  {
+ 125   4                      while(!lightDown);
+ 126   4                      delay(1000);
+ 127   4                      i = i - 5;
+ 128   4                      if (i == 0)
+ 129   4                          i = 125;
+ 130   4                  }
+ 131   3              }
+ 132   2          }
+ 133   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =    552    ----
-   CONSTANT SIZE    =     37    ----
+   CODE SIZE        =    199    ----
+   CONSTANT SIZE    =   ----    ----
    XDATA SIZE       =   ----    ----
    PDATA SIZE       =   ----    ----
-   DATA SIZE        =     32       9
+   DATA SIZE        =   ----    ----
    IDATA SIZE       =   ----    ----
-   BIT SIZE         =   ----    ----
+   BIT SIZE         =      1    ----
 END OF MODULE INFORMATION.
 
 
